@@ -65,6 +65,8 @@ class FlockingEngine:
         self.bounds = np.array(config.bounds)
         self.obstacles = config.obstacles
 
+        self._compute_flocking = jax.jit(self._compute_flocking)
+
     def run(self, duration: float) -> dict:
         """Simulate for `duration` seconds, return playback dict."""
         for _ in self.run_stream(duration):
@@ -119,8 +121,8 @@ class FlockingEngine:
                 pct = sim_start_pct + (step / n_control_steps) * sim_range
                 yield ("Running flocking simulation", int(pct))
 
-            pos = np.asarray(self.sim.data.states.pos[0])
-            vel = np.asarray(self.sim.data.states.vel[0])
+            pos = self.sim.data.states.pos[0]
+            vel = self.sim.data.states.vel[0]
 
             target_vel = self._compute_flocking(pos, vel)
 
@@ -168,80 +170,167 @@ class FlockingEngine:
         }
         yield ("Simulation complete", 100)
 
-    def _compute_flocking(self, pos: NDArray, vel: NDArray) -> NDArray:
-        """Compute target velocity for each drone using Boids rules."""
-        n = self.sim.n_drones
-        target = np.zeros((n, 2), dtype=np.float64)
-        pos_2d = pos[:, :2]
-        vel_2d = vel[:, :2]
+    def _compute_flocking(self, pos, vel):
+        """Compute target velocity using a fully vectorized JAX implementation."""
+        import jax.numpy as jnp
 
-        sep_rad = self.perception_radius * 0.5
+        pos2 = pos[:, :2]
+        vel2 = vel[:, :2]
 
-        for i in range(n):
-            acc = np.zeros(2, dtype=np.float64)
-            neighbors = 0
-            mean_pos = np.zeros(2, dtype=np.float64)
-            mean_vel = np.zeros(2, dtype=np.float64)
+        # Pairwise differences/distances
+        diff = pos2[:, None, :] - pos2[None, :, :]           # (N,N,2)
+        dist = jnp.linalg.norm(diff, axis=-1)                # (N,N)
 
-            for j in range(n):
-                if i == j:
-                    continue
-                diff = pos_2d[i] - pos_2d[j]
-                dist = np.sqrt(diff @ diff)
-                if dist < self.perception_radius and dist > 1e-8:
-                    if dist < sep_rad:
-                        acc += (diff / dist) * self.separation_weight / max(dist, 0.1)
-                    mean_pos += pos_2d[j]
-                    mean_vel += vel_2d[j]
-                    neighbors += 1
+        eye = jnp.eye(pos2.shape[0], dtype=bool)
+        mask = (dist < self.perception_radius) & (~eye)
 
-            if neighbors > 0:
-                mean_pos /= neighbors
-                mean_vel /= neighbors
-                cohesion = (mean_pos - pos_2d[i]) * self.cohesion_weight * 0.5
-                alignment = (mean_vel - vel_2d[i]) * self.alignment_weight * 0.5
-                acc += cohesion + alignment
+        # ------------------------------------------------------------------
+        # Separation
+        # ------------------------------------------------------------------
+        sep_mask = mask & (dist < self.perception_radius * 0.5)
 
-            if self.boundary_mode == "wrap":
-                half_w = (self.bounds[1] - self.bounds[0]) * 0.5
-                half_h = (self.bounds[3] - self.bounds[2]) * 0.5
-                cx = (self.bounds[0] + self.bounds[1]) * 0.5
-                cy = (self.bounds[2] + self.bounds[3]) * 0.5
-                dx = pos_2d[i, 0] - cx
-                dy = pos_2d[i, 1] - cy
-                if abs(dx) > half_w:
-                    acc[0] -= np.sign(dx) * (abs(dx) - half_w) * 2.0
-                if abs(dy) > half_h:
-                    acc[1] -= np.sign(dy) * (abs(dy) - half_h) * 2.0
-            elif self.boundary_mode in ("bounce", "hard"):
-                margin = 0.3
-                for axis in (0, 1):
-                    lo = self.bounds[axis * 2]
-                    hi = self.bounds[axis * 2 + 1]
-                    if pos_2d[i, axis] < lo + margin:
-                        acc[axis] += self.max_speed * 2.0
-                    elif pos_2d[i, axis] > hi - margin:
-                        acc[axis] -= self.max_speed * 2.0
+        safe_dist = jnp.maximum(dist, 0.1)
 
-            for ox, oy, r in self.obstacles:
-                dx = pos_2d[i, 0] - ox
-                dy = pos_2d[i, 1] - oy
-                dist = np.sqrt(dx * dx + dy * dy)
-                if dist < r + 0.5 and dist > 1e-8:
-                    push = (r + 0.5 - dist) / (r + 0.5)
-                    acc[0] += (dx / dist) * push * self.max_speed * 3.0
-                    acc[1] += (dy / dist) * push * self.max_speed * 3.0
+        sep_force = (
+            diff
+            / jnp.maximum(dist[..., None], 1e-6)
+            * self.separation_weight
+            / safe_dist[..., None]
+        )
 
-            force_mag = np.sqrt(acc @ acc)
-            if force_mag > self.max_force:
-                acc = acc / force_mag * self.max_force
+        separation = jnp.sum(
+            jnp.where(sep_mask[..., None], sep_force, 0.0),
+            axis=1,
+        )
 
-            target[i] = vel_2d[i] + acc * 0.5
+        # ------------------------------------------------------------------
+        # Cohesion + Alignment
+        # ------------------------------------------------------------------
+        counts = jnp.maximum(mask.sum(axis=1, keepdims=True), 1)
 
-        speed = np.sqrt(target[:, 0] ** 2 + target[:, 1] ** 2)
-        too_fast = speed > self.max_speed
-        target[too_fast] *= self.max_speed / speed[too_fast, np.newaxis]
+        mean_pos = (
+            jnp.where(mask[..., None], pos2[None], 0.0).sum(axis=1)
+            / counts
+        )
 
-        result = np.zeros((n, 3), dtype=np.float64)
-        result[:, :2] = target
-        return result
+        mean_vel = (
+            jnp.where(mask[..., None], vel2[None], 0.0).sum(axis=1)
+            / counts
+        )
+
+        has_neighbors = mask.sum(axis=1, keepdims=True) > 0
+
+        cohesion = (
+            (mean_pos - pos2)
+            * self.cohesion_weight
+            * 0.5
+        )
+
+        alignment = (
+            (mean_vel - vel2)
+            * self.alignment_weight
+            * 0.5
+        )
+
+        acc = separation + jnp.where(has_neighbors, cohesion + alignment, 0.0)
+
+        # ------------------------------------------------------------------
+        # Boundary handling
+        # ------------------------------------------------------------------
+        if self.boundary_mode == "wrap":
+            half_w = (self.bounds[1] - self.bounds[0]) * 0.5
+            half_h = (self.bounds[3] - self.bounds[2]) * 0.5
+
+            cx = (self.bounds[0] + self.bounds[1]) * 0.5
+            cy = (self.bounds[2] + self.bounds[3]) * 0.5
+
+            dx = pos2[:, 0] - cx
+            dy = pos2[:, 1] - cy
+
+            acc = acc.at[:, 0].add(
+                -jnp.sign(dx) * jnp.maximum(jnp.abs(dx) - half_w, 0.0) * 2.0
+            )
+
+            acc = acc.at[:, 1].add(
+                -jnp.sign(dy) * jnp.maximum(jnp.abs(dy) - half_h, 0.0) * 2.0
+            )
+
+        elif self.boundary_mode in ("bounce", "hard"):
+            margin = 0.3
+
+            for axis in (0, 1):
+                lo = self.bounds[axis * 2]
+                hi = self.bounds[axis * 2 + 1]
+
+                acc = acc.at[:, axis].add(
+                    jnp.where(
+                        pos2[:, axis] < lo + margin,
+                        self.max_speed * 2.0,
+                        0.0,
+                    )
+                )
+
+                acc = acc.at[:, axis].add(
+                    jnp.where(
+                        pos2[:, axis] > hi - margin,
+                        -self.max_speed * 2.0,
+                        0.0,
+                    )
+                )
+
+        # ------------------------------------------------------------------
+        # Obstacles
+        # ------------------------------------------------------------------
+        if self.obstacles:
+            obs = jnp.asarray(self.obstacles)
+
+            obs_xy = obs[:, :2]
+            obs_r = obs[:, 2]
+
+            delta = pos2[:, None, :] - obs_xy[None]
+            odist = jnp.linalg.norm(delta, axis=-1)
+
+            radius = obs_r + 0.5
+
+            active = (odist < radius) & (odist > 1e-6)
+
+            push = (radius - odist) / radius
+
+            obs_force = (
+                delta
+                / jnp.maximum(odist[..., None], 1e-6)
+                * push[..., None]
+                * self.max_speed
+                * 3.0
+            )
+
+            acc += jnp.sum(
+                jnp.where(active[..., None], obs_force, 0.0),
+                axis=1,
+            )
+
+        # ------------------------------------------------------------------
+        # Limit acceleration
+        # ------------------------------------------------------------------
+        force_mag = jnp.linalg.norm(acc, axis=1, keepdims=True)
+
+        acc = jnp.where(
+            force_mag > self.max_force,
+            acc * self.max_force / force_mag,
+            acc,
+        )
+
+        target = vel2 + acc * 0.5
+
+        speed = jnp.linalg.norm(target, axis=1, keepdims=True)
+
+        target = jnp.where(
+            speed > self.max_speed,
+            target * self.max_speed / speed,
+            target,
+        )
+
+        return jnp.concatenate(
+            [target, jnp.zeros((target.shape[0], 1), dtype=target.dtype)],
+            axis=1,
+        )
