@@ -66,6 +66,12 @@ class FlockingEngine:
         self.bounds = np.array(config.bounds)
         self.obstacles = config.obstacles
 
+        self.hold_targets = None
+        if config.obj_points:
+            pts = np.array(config.obj_points, dtype=np.float32)
+            if pts.shape == (config.n_drones, 3):
+                self.hold_targets = pts
+
         self._compute_flocking = jax.jit(self._compute_flocking)
 
     def run(self, duration: float) -> dict:
@@ -82,16 +88,17 @@ class FlockingEngine:
         yield ("Initializing simulation engine", 0)
 
         yield ("Generating initial drone positions", 10)
-        # Generate initial positions and velocities using default random placement
-        import numpy as np
         height = float(self.config.height)
-        rng = np.random.default_rng(42)
-        init_pos = np.zeros((self.sim.n_drones, 3), dtype=np.float32)
-        init_pos[:, 0] = rng.uniform(self.bounds[0], self.bounds[1], self.sim.n_drones)
-        init_pos[:, 1] = rng.uniform(self.bounds[2], self.bounds[3], self.sim.n_drones)
-        init_pos[:, 2] = height
+        if self.hold_targets is not None:
+            init_pos = self.hold_targets.copy()
+        else:
+            init_pos = np.zeros((self.sim.n_drones, 3), dtype=np.float32)
+            rng = np.random.default_rng(42)
+            init_pos[:, 0] = rng.uniform(self.bounds[0], self.bounds[1], self.sim.n_drones)
+            init_pos[:, 1] = rng.uniform(self.bounds[2], self.bounds[3], self.sim.n_drones)
+            init_pos[:, 2] = height
         init_vel = np.zeros((self.sim.n_drones, 3), dtype=np.float32)
-        
+
         init_pos = init_pos[np.newaxis, ...]
         init_vel = init_vel[np.newaxis, ...]
         self.sim.data = self.sim.data.replace(
@@ -176,6 +183,10 @@ class FlockingEngine:
                 control[0, :, 2] = target_pos[:, 2]
                 control[0, :, 3:5] = target_vel_xy.astype(np.float32)
                 control[0, :, 9] = np.arctan2(target_vel_xy[:, 1], target_vel_xy[:, 0] + 1e-8)
+            elif self.hold_targets is not None:
+                control[0, :, 0] = self.hold_targets[:, 0]
+                control[0, :, 1] = self.hold_targets[:, 1]
+                control[0, :, 2] = self.hold_targets[:, 2]
             else:
                 target_vel = self._compute_flocking(pos, vel)
                 control[0, :, 0] = pos[:, 0] + target_vel[:, 0] * (n_substeps / self.sim.freq)
