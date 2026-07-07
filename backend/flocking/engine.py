@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 from backend.flocking.primitives import build_trajectory, trajectory_velocities
 from backend.flocking.schemas import SwarmConfig
-from backend.flocking.spawn import generate_spawn
 
 logger = logging.getLogger(__name__)
 
@@ -79,17 +78,20 @@ class FlockingEngine:
         """Generator yielding (phase_name, percent) during simulation."""
         n_substeps = self.sim.freq // self.sim.control_freq
         n_control_steps = int(duration * self.sim.control_freq)
-        height = float(self.config.height)
 
         yield ("Initializing simulation engine", 0)
 
         yield ("Generating initial drone positions", 10)
-        init_pos, init_vel = generate_spawn(
-            pattern=self.config.spawn_pattern,
-            n_drones=self.sim.n_drones,
-            bounds=self.bounds,
-            params={"height": height, **self.config.spawn_params},
-        )
+        # Generate initial positions and velocities using default random placement
+        import numpy as np
+        height = float(self.config.height)
+        rng = np.random.default_rng(42)
+        init_pos = np.zeros((self.sim.n_drones, 3), dtype=np.float32)
+        init_pos[:, 0] = rng.uniform(self.bounds[0], self.bounds[1], self.sim.n_drones)
+        init_pos[:, 1] = rng.uniform(self.bounds[2], self.bounds[3], self.sim.n_drones)
+        init_pos[:, 2] = height
+        init_vel = np.zeros((self.sim.n_drones, 3), dtype=np.float32)
+        
         init_pos = init_pos[np.newaxis, ...]
         init_vel = init_vel[np.newaxis, ...]
         self.sim.data = self.sim.data.replace(

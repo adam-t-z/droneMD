@@ -26,9 +26,5 @@ class SwarmConfig(BaseModel):
     integrator: str = Field(default="euler", pattern="^(euler|rk4|symplectic_euler)$")
     freq: int = Field(default=500, ge=250, le=2000)
     state_freq: int = Field(default=100, ge=20, le=200)
-    spawn_pattern: str = Field(
-        default="random", pattern="^(random|grid|circle|line|sphere|points)$"
-    )
-    spawn_params: dict = Field(default_factory=dict)
     motion_primitive: str = Field(default="none", pattern="^(none|circle|star|cone)$")
     primitive_params: dict = Field(default_factory=dict)
