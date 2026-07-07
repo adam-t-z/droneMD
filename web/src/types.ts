@@ -23,6 +23,8 @@ export type SwarmConfig = {
 export type PlaybackOverlays = {
   collisions_per_frame: [number, number][][];
   speeds: number[][];
+  pairwise_min_distances?: number[];
+  centroids?: number[][];
 };
 
 export type Playback = {
@@ -60,4 +62,15 @@ export type SimReport = {
   totalDistance: number;
   energyMetric: number;
   collisionTimeline: number[];
+  minDistance: number;
+  nearMisses: number;
+  nearMissTimeline: number[];
+  formationError: number;
+  formationErrorTimeline: number[];
+  pathEfficiency: number;
+  pathEfficiencyPerDrone: number[];
+  coveragePercent: number;
+  connectivityDensity: number;
+  connectivityTimeline: number[];
+  speedTimeline: number[];
 };

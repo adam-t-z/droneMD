@@ -1144,6 +1144,100 @@ button:disabled {
   margin: 0 4px;
 }
 
+/* ── Report Charts ────────────────────────────────────── */
+
+.report-chart-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0;
+}
+
+.report-chart-tab {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  border-bottom: 2px solid transparent;
+  transition: color 150ms, border-color 150ms;
+}
+
+.report-chart-tab:hover {
+  color: #475569;
+}
+
+.report-chart-tab.active {
+  color: #0f172a;
+  border-bottom-color: #2563eb;
+}
+
+.report-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .report-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.report-chart-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fafbfc;
+}
+
+.report-chart-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.report-chart-wrapper {
+  flex: 1;
+  min-height: 0;
+}
+
+.report-coverage-summary {
+  display: flex;
+  gap: 24px;
+  justify-content: space-around;
+  padding: 16px 0;
+}
+
+.report-coverage-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.report-coverage-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-coverage-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* ── Export Actions ──────────────────────────────────── */
 
 .swarm-export-actions {
