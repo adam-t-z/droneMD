@@ -15,6 +15,11 @@ export type SwarmConfig = {
   integrator: "euler" | "rk4" | "symplectic_euler";
   freq: number;
   state_freq: number;
+  height: number;
+  spawn_pattern: "random" | "grid" | "circle" | "line" | "sphere" | "points";
+  spawn_params: Record<string, unknown>;
+  motion_primitive: "none" | "circle" | "star" | "cone";
+  primitive_params: Record<string, unknown>;
 };
 
 export type PlaybackOverlays = {

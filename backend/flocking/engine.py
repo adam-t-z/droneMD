@@ -14,6 +14,7 @@ from crazyflow.sim.integration import Integrator
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
+from backend.flocking.primitives import build_trajectory, trajectory_velocities
 from backend.flocking.schemas import SwarmConfig
 from backend.flocking.spawn import generate_spawn
 
@@ -101,6 +102,53 @@ class FlockingEngine:
             ),
         )
 
+        # When a motion primitive is selected, precompute a dense target
+        # trajectory (sampled at the control frequency) and drive the physics
+        # solver with it instead of the Boids velocity controller. This keeps
+        # the formation shape held continuously (the swarmGPT hold/rotate
+        # behaviour), rather than letting flocking disperse the spawn shape.
+        primitive_traj = None
+        primitive_vel = None
+        if self.config.motion_primitive != "none":
+            pp = self.config.primitive_params
+            t_form = float(pp.get("t_form", min(3.0, duration * 0.3)))
+            omega = float(pp.get("rotation", 0.3))
+            common = {
+                "duration": duration,
+                "control_freq": self.sim.control_freq,
+                "bounds": self.bounds,
+            }
+            if self.config.motion_primitive == "circle":
+                params = {
+                    "radius": float(pp.get("radius", 1.5)),
+                    "height": height,
+                    "t_form": t_form,
+                    "omega": omega,
+                }
+            elif self.config.motion_primitive == "star":
+                params = {
+                    "radius": float(pp.get("radius", 1.2)),
+                    "delta_radius": float(pp.get("delta_radius", 0.4)),
+                    "height": height,
+                    "t_form": t_form,
+                    "omega": omega,
+                }
+            elif self.config.motion_primitive == "cone":
+                params = {
+                    "delta_height": float(pp.get("delta_height", 0.3)),
+                    "spacing": float(pp.get("spacing", 0.5)),
+                    "height": height,
+                    "t_form": t_form,
+                    "inverted": bool(pp.get("inverted", False)),
+                    "omega": omega,
+                }
+            else:
+                params = {}
+            primitive_traj = build_trajectory(
+                self.config.motion_primitive, init_pos[0], **common, params=params
+            )
+            primitive_vel = trajectory_velocities(primitive_traj, self.sim.control_freq)
+
         states = np.empty((n_control_steps, self.sim.n_drones, 13), dtype=np.float64)
         timestamps = np.empty(n_control_steps, dtype=np.float64)
 
@@ -117,14 +165,22 @@ class FlockingEngine:
             pos = self.sim.data.states.pos[0]
             vel = self.sim.data.states.vel[0]
 
-            target_vel = self._compute_flocking(pos, vel)
-
             control = np.zeros((1, self.sim.n_drones, 13), dtype=np.float32)
-            control[0, :, 0] = pos[:, 0] + target_vel[:, 0] * (n_substeps / self.sim.freq)
-            control[0, :, 1] = pos[:, 1] + target_vel[:, 1] * (n_substeps / self.sim.freq)
-            control[0, :, 2] = np.full(self.sim.n_drones, height, dtype=np.float32)
-            control[0, :, 3:5] = target_vel[:, :2].astype(np.float32)
-            control[0, :, 9] = np.arctan2(vel[:, 1], vel[:, 0] + 1e-8).astype(np.float32)
+            if primitive_traj is not None:
+                target_pos = primitive_traj[:, step, :]
+                target_vel_xy = primitive_vel[:, step, :2]
+                control[0, :, 0] = target_pos[:, 0]
+                control[0, :, 1] = target_pos[:, 1]
+                control[0, :, 2] = target_pos[:, 2]
+                control[0, :, 3:5] = target_vel_xy.astype(np.float32)
+                control[0, :, 9] = np.arctan2(target_vel_xy[:, 1], target_vel_xy[:, 0] + 1e-8)
+            else:
+                target_vel = self._compute_flocking(pos, vel)
+                control[0, :, 0] = pos[:, 0] + target_vel[:, 0] * (n_substeps / self.sim.freq)
+                control[0, :, 1] = pos[:, 1] + target_vel[:, 1] * (n_substeps / self.sim.freq)
+                control[0, :, 2] = np.full(self.sim.n_drones, height, dtype=np.float32)
+                control[0, :, 3:5] = target_vel[:, :2].astype(np.float32)
+                control[0, :, 9] = np.arctan2(vel[:, 1], vel[:, 0] + 1e-8).astype(np.float32)
 
             self.sim.state_control(control)
             self.sim.step(n_substeps)

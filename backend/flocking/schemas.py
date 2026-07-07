@@ -30,3 +30,5 @@ class SwarmConfig(BaseModel):
         default="random", pattern="^(random|grid|circle|line|sphere|points)$"
     )
     spawn_params: dict = Field(default_factory=dict)
+    motion_primitive: str = Field(default="none", pattern="^(none|circle|star|cone)$")
+    primitive_params: dict = Field(default_factory=dict)

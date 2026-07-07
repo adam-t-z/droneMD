@@ -23,6 +23,11 @@ const DEFAULT_CONFIG: SwarmConfig = {
   integrator: "euler",
   freq: 500,
   state_freq: 100,
+  height: 1.0,
+  spawn_pattern: "random",
+  spawn_params: {},
+  motion_primitive: "none",
+  primitive_params: {},
 };
 
 const PHASES: { key: string; label: string }[] = [
@@ -147,6 +152,61 @@ export function SwarmLab() {
     setConfig((prev) => ({ ...prev, [key]: value }));
   }, []);
 
+  const updateSpawnParam = useCallback((key: string, value: unknown) => {
+    setConfig((prev) => ({
+      ...prev,
+      spawn_params: { ...prev.spawn_params, [key]: value },
+    }));
+  }, []);
+
+  const getSpawnParam = useCallback(
+    (key: string, defaultVal: number): number => {
+      const v = config.spawn_params[key];
+      return typeof v === "number" ? v : defaultVal;
+    },
+    [config.spawn_params],
+  );
+
+  const updatePrimitiveParam = useCallback((key: string, value: unknown) => {
+    setConfig((prev) => ({
+      ...prev,
+      primitive_params: { ...prev.primitive_params, [key]: value },
+    }));
+  }, []);
+
+  const getPrimitiveParam = useCallback(
+    (key: string, defaultVal: number): number => {
+      const v = config.primitive_params[key];
+      return typeof v === "number" ? v : defaultVal;
+    },
+    [config.primitive_params],
+  );
+
+  const handleCSVUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const lines = text.split("\n").filter((l) => l.trim().length > 0);
+      const points: number[][] = [];
+      for (const line of lines) {
+        const parts = line.split(",").map((s) => parseFloat(s.trim()));
+        if (parts.length >= 2) {
+          points.push([parts[0], parts[1], parts[2] ?? config.height]);
+        }
+      }
+      if (points.length === 0) return;
+      setConfig((prev) => ({
+        ...prev,
+        n_drones: points.length,
+        spawn_pattern: "points",
+        spawn_params: { ...prev.spawn_params, points },
+      }));
+    };
+    reader.readAsText(file);
+  }, [config.height]);
+
   const startSimulation = useCallback(async () => {
     setLoading(true);
     setSimPhase({ phase: "Initializing simulation engine", percent: 0 });
@@ -243,6 +303,208 @@ export function SwarmLab() {
                   onChange={(v) => updateConfig(s.key as keyof SwarmConfig, v)}
                 />
               ))}
+            </div>
+
+            <div className="swarm-section">
+              <div className="section-title">
+                <h2>Spawn Pattern</h2>
+              </div>
+              <div className="spawn-options">
+                {(["random", "grid", "circle", "line", "sphere", "points"] as const).map((p) => (
+                  <label key={p} className="spawn-option">
+                    <input
+                      type="radio"
+                      name="spawn_pattern"
+                      value={p}
+                      checked={config.spawn_pattern === p}
+                      onChange={() => updateConfig("spawn_pattern", p)}
+                    />
+                    <span>{p === "points" ? "Import CSV" : p.charAt(0).toUpperCase() + p.slice(1)}</span>
+                  </label>
+                ))}
+              </div>
+              {config.spawn_pattern === "grid" && (
+                <Slider
+                  label="Spacing"
+                  value={getSpawnParam("spacing", 0.5)}
+                  min={0.1}
+                  max={2.0}
+                  step={0.1}
+                  onChange={(v) => updateSpawnParam("spacing", v)}
+                />
+              )}
+              {config.spawn_pattern === "circle" && (
+                <Slider
+                  label="Radius"
+                  value={getSpawnParam("radius", 1.5)}
+                  min={0.5}
+                  max={5.0}
+                  step={0.1}
+                  onChange={(v) => updateSpawnParam("radius", v)}
+                />
+              )}
+              {config.spawn_pattern === "line" && (
+                <>
+                  <Slider
+                    label="Spacing"
+                    value={getSpawnParam("spacing", 0.5)}
+                    min={0.1}
+                    max={2.0}
+                    step={0.1}
+                    onChange={(v) => updateSpawnParam("spacing", v)}
+                  />
+                  <label className="swarm-slider">
+                    <span>Axis</span>
+                    <select
+                      value={config.spawn_params.axis as string ?? "x"}
+                      onChange={(e) => updateSpawnParam("axis", e.target.value)}
+                    >
+                      <option value="x">X</option>
+                      <option value="y">Y</option>
+                      <option value="diagonal">Diagonal</option>
+                    </select>
+                  </label>
+                </>
+              )}
+              {config.spawn_pattern === "sphere" && (
+                <Slider
+                  label="Radius"
+                  value={getSpawnParam("radius", 2.0)}
+                  min={0.5}
+                  max={5.0}
+                  step={0.1}
+                  onChange={(v) => updateSpawnParam("radius", v)}
+                />
+              )}
+              {config.spawn_pattern === "points" && (
+                <div className="spawn-csv-area">
+                  <label className="spawn-csv-label">
+                    <input
+                      type="file"
+                      accept=".csv,.txt"
+                      onChange={handleCSVUpload}
+                      className="spawn-csv-input"
+                    />
+                    <span>Choose CSV file</span>
+                  </label>
+                  <p className="spawn-csv-hint">
+                    Format: x,y[,z] per line (one drone per row)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="swarm-section">
+              <div className="section-title">
+                <h2>Motion Primitive</h2>
+              </div>
+              <label className="swarm-slider">
+                <span>Shape</span>
+                <select
+                  value={config.motion_primitive}
+                  onChange={(e) =>
+                    updateConfig("motion_primitive", e.target.value as SwarmConfig["motion_primitive"])
+                  }
+                >
+                  <option value="none">None (Flocking)</option>
+                  <option value="circle">Circle</option>
+                  <option value="star">Star</option>
+                  <option value="cone">Cone</option>
+                </select>
+              </label>
+              {config.motion_primitive === "circle" && (
+                <>
+                  <Slider
+                    label="Radius"
+                    value={getPrimitiveParam("radius", 1.5)}
+                    min={0.3}
+                    max={2.0}
+                    step={0.1}
+                    onChange={(v) => updatePrimitiveParam("radius", v)}
+                  />
+                  <Slider
+                    label="Rotation (rad/s)"
+                    value={getPrimitiveParam("rotation", 0.3)}
+                    min={0}
+                    max={1.5}
+                    step={0.1}
+                    onChange={(v) => updatePrimitiveParam("rotation", v)}
+                  />
+                  <p className="spawn-csv-hint">
+                    Drones form a circle and hold the shape continuously (rotate at 0 to hold still).
+                  </p>
+                </>
+              )}
+              {config.motion_primitive === "star" && (
+                <>
+                  <Slider
+                    label="Inner Radius"
+                    value={getPrimitiveParam("radius", 1.2)}
+                    min={0.3}
+                    max={2.0}
+                    step={0.1}
+                    onChange={(v) => updatePrimitiveParam("radius", v)}
+                  />
+                  <Slider
+                    label="Spoke Gap"
+                    value={getPrimitiveParam("delta_radius", 0.4)}
+                    min={0.1}
+                    max={1.0}
+                    step={0.05}
+                    onChange={(v) => updatePrimitiveParam("delta_radius", v)}
+                  />
+                  <Slider
+                    label="Rotation (rad/s)"
+                    value={getPrimitiveParam("rotation", 0.2)}
+                    min={0}
+                    max={1.5}
+                    step={0.1}
+                    onChange={(v) => updatePrimitiveParam("rotation", v)}
+                  />
+                  <p className="spawn-csv-hint">
+                    Two interleaved rings form a star with n/2 spokes; shape is held continuously.
+                  </p>
+                </>
+              )}
+              {config.motion_primitive === "cone" && (
+                <>
+                  <Slider
+                    label="Layer Height"
+                    value={getPrimitiveParam("delta_height", 0.3)}
+                    min={0.1}
+                    max={0.8}
+                    step={0.05}
+                    onChange={(v) => updatePrimitiveParam("delta_height", v)}
+                  />
+                  <Slider
+                    label="Spacing"
+                    value={getPrimitiveParam("spacing", 0.5)}
+                    min={0.3}
+                    max={1.2}
+                    step={0.05}
+                    onChange={(v) => updatePrimitiveParam("spacing", v)}
+                  />
+                  <Slider
+                    label="Rotation (rad/s)"
+                    value={getPrimitiveParam("rotation", 0.3)}
+                    min={0}
+                    max={1.5}
+                    step={0.1}
+                    onChange={(v) => updatePrimitiveParam("rotation", v)}
+                  />
+                  <label className="swarm-slider">
+                    <span>Inverted</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(config.primitive_params.inverted)}
+                      onChange={(e) => updatePrimitiveParam("inverted", e.target.checked)}
+                    />
+                  </label>
+                  <p className="spawn-csv-hint">
+                    Layered rings stack into a cone (apex up, or down if inverted); shape is held.
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="swarm-section">
