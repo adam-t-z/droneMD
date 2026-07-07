@@ -386,7 +386,6 @@ export function SwarmLab() {
                 onClick={() => setShowBehavior(!showBehavior)}
               >
                 {showBehavior ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                <FlaskConical size={18} />
                 <h2>Behavior</h2>
               </button>
               {showBehavior && (
