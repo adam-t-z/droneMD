@@ -24,6 +24,16 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+export async function loadDefaultPlayback(): Promise<Playback | null> {
+  try {
+    const resp = await fetch("/data/default-playback.json");
+    if (!resp.ok) return null;
+    return (await resp.json()) as Playback;
+  } catch {
+    return null;
+  }
+}
+
 export function simulateSwarm(config: SwarmConfig): Promise<Playback> {
   return request<Playback>("/api/swarm/simulate", {
     method: "POST",

@@ -1,14 +1,14 @@
 import { Atom, ChevronDown, ChevronRight, Download, FlaskConical, Loader2, Maximize2, Minimize2, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { simulateSwarmStream } from "./api";
+import { loadDefaultPlayback, simulateSwarmStream } from "./api";
 import { downloadCSV, downloadJSONWaypoints, downloadROS, downloadReportPdf, downloadReportTxt } from "./export";
 import { Player } from "./Player";
 import { ReportPanel } from "./ReportPanel";
 import type { Playback, PlaybackOverlays, SimPhase, SwarmConfig } from "./types";
 
 const DEFAULT_CONFIG: SwarmConfig = {
-  n_drones: 50,
-  duration: 30,
+  n_drones: 15,
+  duration: 20,
   separation_weight: 1.5,
   alignment_weight: 1.0,
   cohesion_weight: 1.0,
@@ -88,12 +88,6 @@ function Slider({
       </div>
     </label>
   );
-}
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
 function ProgressIndicator({ phase, percent }: { phase: string; percent: number }) {
@@ -210,6 +204,16 @@ export function SwarmLab() {
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
+  useEffect(() => {
+    void loadDefaultPlayback().then((data) => {
+      if (data) {
+        const { overlays: ov, ...rest } = data;
+        setPlayback(rest);
+        setOverlays(ov ?? null);
+      }
+    });
+  }, []);
+
   const statusLabel = loading ? "Simulating" : playback ? "Complete" : "Ready";
   const statusClass = loading
     ? "status-pill playing"
@@ -222,7 +226,6 @@ export function SwarmLab() {
       <section className="workspace">
         <header className="topbar">
           <div>
-            <p className="eyebrow">DroneMD</p>
             <h1>DroneMD</h1>
             <p className="swarm-header-description">
               This is a drone swarm simulation system running on AMD GPU hardware, with live controls for swarm behavior, with actual physics engine.
@@ -383,7 +386,6 @@ export function SwarmLab() {
                 onClick={() => setShowBehavior(!showBehavior)}
               >
                 {showBehavior ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                <FlaskConical size={18} />
                 <h2>Behavior</h2>
               </button>
               {showBehavior && (
@@ -573,19 +575,7 @@ export function SwarmLab() {
           />
         )}
 
-        <div className="swarm-stats">
-          <span>Drones: {playback?.numDrones ?? config.n_drones}</span>
-          <span>Boundary: {config.boundary_mode}</span>
-          <span>Device: {config.device}</span>
-          <span>Duration: {playback ? formatTime(playback.timestamps[playback.timestamps.length - 1]) : formatTime(config.duration)}</span>
-          {overlays && (
-            <>
-              <span>Avg Speed: {(overlays.speeds.flat().reduce((a, b) => a + b, 0) / Math.max(1, overlays.speeds.flat().length)).toFixed(2)} m/s</span>
-              <span>FPS: {playback ? (playback.timestamps.length / (playback.timestamps[playback.timestamps.length - 1] - playback.timestamps[0])).toFixed(0) : "-"}</span>
-              <span>Collisions: {overlays.collisions_per_frame.reduce((s, f) => s + f.length, 0)}</span>
-            </>
-          )}
-        </div>
+
       </section>
     </main>
   );
