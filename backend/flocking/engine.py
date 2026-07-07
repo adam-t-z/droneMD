@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
 from backend.flocking.schemas import SwarmConfig
+from backend.flocking.spawn import generate_spawn
 
 logger = logging.getLogger(__name__)
 
@@ -82,26 +83,18 @@ class FlockingEngine:
         yield ("Initializing simulation engine", 0)
 
         yield ("Generating initial drone positions", 10)
-        rng = np.random.default_rng(42)
-        init_pos = np.zeros((1, self.sim.n_drones, 3), dtype=np.float32)
-        init_pos[0, :, 0] = rng.uniform(self.bounds[0], self.bounds[1], self.sim.n_drones)
-        init_pos[0, :, 1] = rng.uniform(self.bounds[2], self.bounds[3], self.sim.n_drones)
-        init_pos[0, :, 2] = height
-        self.sim.data = self.sim.data.replace(
-            states=self.sim.data.states.replace(
-                pos=self.sim.data.states.pos.at[0].set(init_pos[0])
-            ),
-            core=self.sim.data.core.replace(
-                mjx_synced=self.sim.data.core.mjx_synced.at[...].set(False)
-            ),
+        init_pos, init_vel = generate_spawn(
+            pattern=self.config.spawn_pattern,
+            n_drones=self.sim.n_drones,
+            bounds=self.bounds,
+            params={"height": height, **self.config.spawn_params},
         )
-
-        init_vel = np.zeros((1, self.sim.n_drones, 3), dtype=np.float32)
-        init_vel[0, :, 0] = rng.uniform(-0.5, 0.5, self.sim.n_drones)
-        init_vel[0, :, 1] = rng.uniform(-0.5, 0.5, self.sim.n_drones)
+        init_pos = init_pos[np.newaxis, ...]
+        init_vel = init_vel[np.newaxis, ...]
         self.sim.data = self.sim.data.replace(
             states=self.sim.data.states.replace(
-                vel=self.sim.data.states.vel.at[0].set(init_vel[0])
+                pos=self.sim.data.states.pos.at[0].set(init_pos[0]),
+                vel=self.sim.data.states.vel.at[0].set(init_vel[0]),
             ),
             core=self.sim.data.core.replace(
                 mjx_synced=self.sim.data.core.mjx_synced.at[...].set(False)
@@ -178,8 +171,8 @@ class FlockingEngine:
         vel2 = vel[:, :2]
 
         # Pairwise differences/distances
-        diff = pos2[:, None, :] - pos2[None, :, :]           # (N,N,2)
-        dist = jnp.linalg.norm(diff, axis=-1)                # (N,N)
+        diff = pos2[:, None, :] - pos2[None, :, :]  # (N,N,2)
+        dist = jnp.linalg.norm(diff, axis=-1)  # (N,N)
 
         eye = jnp.eye(pos2.shape[0], dtype=bool)
         mask = (dist < self.perception_radius) & (~eye)
@@ -198,39 +191,22 @@ class FlockingEngine:
             / safe_dist[..., None]
         )
 
-        separation = jnp.sum(
-            jnp.where(sep_mask[..., None], sep_force, 0.0),
-            axis=1,
-        )
+        separation = jnp.sum(jnp.where(sep_mask[..., None], sep_force, 0.0), axis=1)
 
         # ------------------------------------------------------------------
         # Cohesion + Alignment
         # ------------------------------------------------------------------
         counts = jnp.maximum(mask.sum(axis=1, keepdims=True), 1)
 
-        mean_pos = (
-            jnp.where(mask[..., None], pos2[None], 0.0).sum(axis=1)
-            / counts
-        )
+        mean_pos = jnp.where(mask[..., None], pos2[None], 0.0).sum(axis=1) / counts
 
-        mean_vel = (
-            jnp.where(mask[..., None], vel2[None], 0.0).sum(axis=1)
-            / counts
-        )
+        mean_vel = jnp.where(mask[..., None], vel2[None], 0.0).sum(axis=1) / counts
 
         has_neighbors = mask.sum(axis=1, keepdims=True) > 0
 
-        cohesion = (
-            (mean_pos - pos2)
-            * self.cohesion_weight
-            * 0.5
-        )
+        cohesion = (mean_pos - pos2) * self.cohesion_weight * 0.5
 
-        alignment = (
-            (mean_vel - vel2)
-            * self.alignment_weight
-            * 0.5
-        )
+        alignment = (mean_vel - vel2) * self.alignment_weight * 0.5
 
         acc = separation + jnp.where(has_neighbors, cohesion + alignment, 0.0)
 
@@ -247,13 +223,9 @@ class FlockingEngine:
             dx = pos2[:, 0] - cx
             dy = pos2[:, 1] - cy
 
-            acc = acc.at[:, 0].add(
-                -jnp.sign(dx) * jnp.maximum(jnp.abs(dx) - half_w, 0.0) * 2.0
-            )
+            acc = acc.at[:, 0].add(-jnp.sign(dx) * jnp.maximum(jnp.abs(dx) - half_w, 0.0) * 2.0)
 
-            acc = acc.at[:, 1].add(
-                -jnp.sign(dy) * jnp.maximum(jnp.abs(dy) - half_h, 0.0) * 2.0
-            )
+            acc = acc.at[:, 1].add(-jnp.sign(dy) * jnp.maximum(jnp.abs(dy) - half_h, 0.0) * 2.0)
 
         elif self.boundary_mode in ("bounce", "hard"):
             margin = 0.3
@@ -263,19 +235,11 @@ class FlockingEngine:
                 hi = self.bounds[axis * 2 + 1]
 
                 acc = acc.at[:, axis].add(
-                    jnp.where(
-                        pos2[:, axis] < lo + margin,
-                        self.max_speed * 2.0,
-                        0.0,
-                    )
+                    jnp.where(pos2[:, axis] < lo + margin, self.max_speed * 2.0, 0.0)
                 )
 
                 acc = acc.at[:, axis].add(
-                    jnp.where(
-                        pos2[:, axis] > hi - margin,
-                        -self.max_speed * 2.0,
-                        0.0,
-                    )
+                    jnp.where(pos2[:, axis] > hi - margin, -self.max_speed * 2.0, 0.0)
                 )
 
         # ------------------------------------------------------------------
@@ -297,40 +261,24 @@ class FlockingEngine:
             push = (radius - odist) / radius
 
             obs_force = (
-                delta
-                / jnp.maximum(odist[..., None], 1e-6)
-                * push[..., None]
-                * self.max_speed
-                * 3.0
+                delta / jnp.maximum(odist[..., None], 1e-6) * push[..., None] * self.max_speed * 3.0
             )
 
-            acc += jnp.sum(
-                jnp.where(active[..., None], obs_force, 0.0),
-                axis=1,
-            )
+            acc += jnp.sum(jnp.where(active[..., None], obs_force, 0.0), axis=1)
 
         # ------------------------------------------------------------------
         # Limit acceleration
         # ------------------------------------------------------------------
         force_mag = jnp.linalg.norm(acc, axis=1, keepdims=True)
 
-        acc = jnp.where(
-            force_mag > self.max_force,
-            acc * self.max_force / force_mag,
-            acc,
-        )
+        acc = jnp.where(force_mag > self.max_force, acc * self.max_force / force_mag, acc)
 
         target = vel2 + acc * 0.5
 
         speed = jnp.linalg.norm(target, axis=1, keepdims=True)
 
-        target = jnp.where(
-            speed > self.max_speed,
-            target * self.max_speed / speed,
-            target,
-        )
+        target = jnp.where(speed > self.max_speed, target * self.max_speed / speed, target)
 
         return jnp.concatenate(
-            [target, jnp.zeros((target.shape[0], 1), dtype=target.dtype)],
-            axis=1,
+            [target, jnp.zeros((target.shape[0], 1), dtype=target.dtype)], axis=1
         )
