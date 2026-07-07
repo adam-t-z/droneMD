@@ -80,3 +80,35 @@ export async function simulateSwarmStream(
 
   throw new Error("Stream ended without result");
 }
+
+export async function fetchDefaultObjPoints(): Promise<{ points: number[][]; n: number } | null> {
+  try {
+    const resp = await fetch("/data/default-obj-points.json");
+    if (!resp.ok) return null;
+    return await resp.json() as { points: number[][]; n: number };
+  } catch {
+    return null;
+  }
+}
+
+export async function uploadObjFile(
+  file: File,
+  nDrones: number,
+): Promise<{ points: number[][]; n_drones: number }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const resp = await fetch(`/api/swarm/shapes/upload-obj?n_drones=${nDrones}`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    let detail = text;
+    try {
+      const parsed = JSON.parse(text) as { detail?: string };
+      if (parsed.detail) detail = parsed.detail;
+    } catch { /* use raw text */ }
+    throw new Error(detail);
+  }
+  return await resp.json() as { points: number[][]; n_drones: number };
+}

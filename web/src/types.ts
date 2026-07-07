@@ -18,6 +18,7 @@ export type SwarmConfig = {
   height: number;
   motion_primitive: "none" | "circle" | "star" | "cone";
   primitive_params: Record<string, unknown>;
+  obj_points: number[][] | null;
 };
 
 export type PlaybackOverlays = {

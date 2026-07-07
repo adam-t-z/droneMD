@@ -1,6 +1,6 @@
 import { Atom, ChevronDown, ChevronRight, Download, FlaskConical, Loader2, Maximize2, Minimize2, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { loadDefaultPlayback, simulateSwarmStream } from "./api";
+import { fetchDefaultObjPoints, loadDefaultPlayback, simulateSwarmStream, uploadObjFile } from "./api";
 import { downloadCSV, downloadJSONWaypoints, downloadROS, downloadReportPdf, downloadReportTxt } from "./export";
 import { Player } from "./Player";
 import { ReportPanel } from "./ReportPanel";
@@ -26,6 +26,7 @@ const DEFAULT_CONFIG: SwarmConfig = {
   height: 1.0,
   motion_primitive: "none",
   primitive_params: {},
+  obj_points: null,
 };
 
 const PHASES: { key: string; label: string }[] = [
@@ -134,7 +135,10 @@ export function SwarmLab() {
   const [showEnvironment, setShowEnvironment] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [formationType, setFormationType] = useState<"none" | "human" | "upload">("none");
+  const [objUploading, setObjUploading] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const updateConfig = useCallback(<K extends keyof SwarmConfig>(
     key: K,
@@ -156,6 +160,48 @@ export function SwarmLab() {
       return typeof v === "number" ? v : defaultVal;
     },
     [config.primitive_params],
+  );
+
+  const handleFormationChange = useCallback(async (value: "none" | "human" | "upload") => {
+    setFormationType(value);
+    if (value === "none") {
+      setConfig((prev) => ({ ...prev, obj_points: null }));
+      return;
+    }
+    if (value === "human") {
+      const data = await fetchDefaultObjPoints();
+      if (data) {
+        setConfig((prev) => ({ ...prev, n_drones: data.n, obj_points: data.points }));
+      }
+    }
+    if (value === "upload") {
+      setConfig((prev) => ({ ...prev, obj_points: null }));
+      setTimeout(() => fileInputRef.current?.click(), 50);
+    }
+  }, []);
+
+  const handleObjFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setObjUploading(true);
+      try {
+        const result = await uploadObjFile(file, config.n_drones);
+        setConfig((prev) => ({
+          ...prev,
+          obj_points: result.points,
+          n_drones: result.n_drones,
+        }));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "OBJ upload failed");
+        setFormationType("none");
+        setConfig((prev) => ({ ...prev, obj_points: null }));
+      } finally {
+        setObjUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    },
+    [config.n_drones],
   );
 
   const startSimulation = useCallback(async () => {
@@ -183,6 +229,7 @@ export function SwarmLab() {
     setPlayback(null);
     setOverlays(null);
     setSimPhase(null);
+    setFormationType("none");
   }, []);
 
   const togglePreviewFullscreen = useCallback(async () => {
@@ -265,7 +312,56 @@ export function SwarmLab() {
               ))}
             </div>
 
-            
+            <div className="swarm-section">
+              <div className="section-title">
+                <h2>Drone Formation</h2>
+              </div>
+              <label className="swarm-slider">
+                <span>Shape</span>
+                <select
+                  value={formationType}
+                  onChange={(e) => {
+                    const v = e.target.value as "none" | "human" | "upload";
+                    void handleFormationChange(v);
+                  }}
+                >
+                  <option value="none">None</option>
+                  <option value="human">Human Body</option>
+                  <option value="upload">Upload OBJ...</option>
+                </select>
+              </label>
+              {formationType === "upload" && (
+                <div className="swarm-obj-upload">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".obj"
+                    style={{ display: "none" }}
+                    onChange={(e) => void handleObjFileChange(e)}
+                  />
+                  <button
+                    className="secondary-action compact"
+                    disabled={objUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {objUploading ? "Processing..." : "Choose OBJ File"}
+                  </button>
+                  {config.obj_points && (
+                    <span className="swarm-obj-status">
+                      {config.obj_points.length} points loaded
+                    </span>
+                  )}
+                  <p className="spawn-csv-hint">
+                    Upload a .obj 3D model. Drones will spawn in the model's shape and hold position.
+                  </p>
+                </div>
+              )}
+              {formationType === "human" && config.obj_points && (
+                <p className="spawn-csv-hint">
+                  {config.obj_points.length} drones will form the human body shape and hold position.
+                </p>
+              )}
+            </div>
 
             <div className="swarm-section">
               <div className="section-title">
