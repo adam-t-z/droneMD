@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class SwarmConfig(BaseModel):
-    n_drones: int = Field(default=50, ge=10, le=200)
+    n_drones: int = Field(default=15, ge=1, le=200)
     duration: float = Field(default=30.0, ge=5.0, le=120.0)
     separation_weight: float = Field(default=1.5, ge=0.0, le=5.0)
     alignment_weight: float = Field(default=1.0, ge=0.0, le=5.0)
@@ -26,3 +26,7 @@ class SwarmConfig(BaseModel):
     integrator: str = Field(default="euler", pattern="^(euler|rk4|symplectic_euler)$")
     freq: int = Field(default=500, ge=250, le=2000)
     state_freq: int = Field(default=100, ge=20, le=200)
+    spawn_pattern: str = Field(
+        default="random", pattern="^(random|grid|circle|line|sphere|points)$"
+    )
+    spawn_params: dict = Field(default_factory=dict)
