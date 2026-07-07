@@ -1,6 +1,6 @@
 import { Atom, ChevronDown, ChevronRight, Download, FlaskConical, Loader2, Maximize2, Minimize2, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { simulateSwarmStream } from "./api";
+import { loadDefaultPlayback, simulateSwarmStream } from "./api";
 import { downloadCSV, downloadJSONWaypoints, downloadROS, downloadReportPdf, downloadReportTxt } from "./export";
 import { Player } from "./Player";
 import { ReportPanel } from "./ReportPanel";
@@ -202,6 +202,16 @@ export function SwarmLab() {
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    void loadDefaultPlayback().then((data) => {
+      if (data) {
+        const { overlays: ov, ...rest } = data;
+        setPlayback(rest);
+        setOverlays(ov ?? null);
+      }
+    });
   }, []);
 
   const statusLabel = loading ? "Simulating" : playback ? "Complete" : "Ready";
