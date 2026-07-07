@@ -29,21 +29,20 @@ dependencies = [
     "scipy>=1.17.0,<1.18.0",
     "tqdm",
     "pyyaml",
-
     # LLM
     "ollama",
     "openai",
-
     # Web
     "fastapi>=0.115.0,<1.0.0",
+    "python-multipart>=0.0.5",
     "uvicorn[standard]>=0.32.0,<1.0.0",
-
     # Sim
     "axswarm @ git+https://github.com/learnsyslab/axswarm.git",
     "crazyflow==0.1.0",
     "drone-models==0.1.0",
     "drone-controllers==0.1.0",
     "jax>=0.7",
+    "trimesh>=4.12.2",
 ]
 
 [project.optional-dependencies]
