@@ -14,6 +14,7 @@ from crazyflow.sim.integration import Integrator
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
+from backend.flocking.primitives import build_trajectory, trajectory_velocities
 from backend.flocking.schemas import SwarmConfig
 
 logger = logging.getLogger(__name__)
@@ -77,36 +78,78 @@ class FlockingEngine:
         """Generator yielding (phase_name, percent) during simulation."""
         n_substeps = self.sim.freq // self.sim.control_freq
         n_control_steps = int(duration * self.sim.control_freq)
-        height = float(self.config.height)
 
         yield ("Initializing simulation engine", 0)
 
         yield ("Generating initial drone positions", 10)
+        # Generate initial positions and velocities using default random placement
+        import numpy as np
+        height = float(self.config.height)
         rng = np.random.default_rng(42)
-        init_pos = np.zeros((1, self.sim.n_drones, 3), dtype=np.float32)
-        init_pos[0, :, 0] = rng.uniform(self.bounds[0], self.bounds[1], self.sim.n_drones)
-        init_pos[0, :, 1] = rng.uniform(self.bounds[2], self.bounds[3], self.sim.n_drones)
-        init_pos[0, :, 2] = height
+        init_pos = np.zeros((self.sim.n_drones, 3), dtype=np.float32)
+        init_pos[:, 0] = rng.uniform(self.bounds[0], self.bounds[1], self.sim.n_drones)
+        init_pos[:, 1] = rng.uniform(self.bounds[2], self.bounds[3], self.sim.n_drones)
+        init_pos[:, 2] = height
+        init_vel = np.zeros((self.sim.n_drones, 3), dtype=np.float32)
+        
+        init_pos = init_pos[np.newaxis, ...]
+        init_vel = init_vel[np.newaxis, ...]
         self.sim.data = self.sim.data.replace(
             states=self.sim.data.states.replace(
-                pos=self.sim.data.states.pos.at[0].set(init_pos[0])
+                pos=self.sim.data.states.pos.at[0].set(init_pos[0]),
+                vel=self.sim.data.states.vel.at[0].set(init_vel[0]),
             ),
             core=self.sim.data.core.replace(
                 mjx_synced=self.sim.data.core.mjx_synced.at[...].set(False)
             ),
         )
 
-        init_vel = np.zeros((1, self.sim.n_drones, 3), dtype=np.float32)
-        init_vel[0, :, 0] = rng.uniform(-0.5, 0.5, self.sim.n_drones)
-        init_vel[0, :, 1] = rng.uniform(-0.5, 0.5, self.sim.n_drones)
-        self.sim.data = self.sim.data.replace(
-            states=self.sim.data.states.replace(
-                vel=self.sim.data.states.vel.at[0].set(init_vel[0])
-            ),
-            core=self.sim.data.core.replace(
-                mjx_synced=self.sim.data.core.mjx_synced.at[...].set(False)
-            ),
-        )
+        # When a motion primitive is selected, precompute a dense target
+        # trajectory (sampled at the control frequency) and drive the physics
+        # solver with it instead of the Boids velocity controller. This keeps
+        # the formation shape held continuously (the swarmGPT hold/rotate
+        # behaviour), rather than letting flocking disperse the spawn shape.
+        primitive_traj = None
+        primitive_vel = None
+        if self.config.motion_primitive != "none":
+            pp = self.config.primitive_params
+            t_form = float(pp.get("t_form", min(3.0, duration * 0.3)))
+            omega = float(pp.get("rotation", 0.3))
+            common = {
+                "duration": duration,
+                "control_freq": self.sim.control_freq,
+                "bounds": self.bounds,
+            }
+            if self.config.motion_primitive == "circle":
+                params = {
+                    "radius": float(pp.get("radius", 1.5)),
+                    "height": height,
+                    "t_form": t_form,
+                    "omega": omega,
+                }
+            elif self.config.motion_primitive == "star":
+                params = {
+                    "radius": float(pp.get("radius", 1.2)),
+                    "delta_radius": float(pp.get("delta_radius", 0.4)),
+                    "height": height,
+                    "t_form": t_form,
+                    "omega": omega,
+                }
+            elif self.config.motion_primitive == "cone":
+                params = {
+                    "delta_height": float(pp.get("delta_height", 0.3)),
+                    "spacing": float(pp.get("spacing", 0.5)),
+                    "height": height,
+                    "t_form": t_form,
+                    "inverted": bool(pp.get("inverted", False)),
+                    "omega": omega,
+                }
+            else:
+                params = {}
+            primitive_traj = build_trajectory(
+                self.config.motion_primitive, init_pos[0], **common, params=params
+            )
+            primitive_vel = trajectory_velocities(primitive_traj, self.sim.control_freq)
 
         states = np.empty((n_control_steps, self.sim.n_drones, 13), dtype=np.float64)
         timestamps = np.empty(n_control_steps, dtype=np.float64)
@@ -124,14 +167,22 @@ class FlockingEngine:
             pos = self.sim.data.states.pos[0]
             vel = self.sim.data.states.vel[0]
 
-            target_vel = self._compute_flocking(pos, vel)
-
             control = np.zeros((1, self.sim.n_drones, 13), dtype=np.float32)
-            control[0, :, 0] = pos[:, 0] + target_vel[:, 0] * (n_substeps / self.sim.freq)
-            control[0, :, 1] = pos[:, 1] + target_vel[:, 1] * (n_substeps / self.sim.freq)
-            control[0, :, 2] = np.full(self.sim.n_drones, height, dtype=np.float32)
-            control[0, :, 3:5] = target_vel[:, :2].astype(np.float32)
-            control[0, :, 9] = np.arctan2(vel[:, 1], vel[:, 0] + 1e-8).astype(np.float32)
+            if primitive_traj is not None:
+                target_pos = primitive_traj[:, step, :]
+                target_vel_xy = primitive_vel[:, step, :2]
+                control[0, :, 0] = target_pos[:, 0]
+                control[0, :, 1] = target_pos[:, 1]
+                control[0, :, 2] = target_pos[:, 2]
+                control[0, :, 3:5] = target_vel_xy.astype(np.float32)
+                control[0, :, 9] = np.arctan2(target_vel_xy[:, 1], target_vel_xy[:, 0] + 1e-8)
+            else:
+                target_vel = self._compute_flocking(pos, vel)
+                control[0, :, 0] = pos[:, 0] + target_vel[:, 0] * (n_substeps / self.sim.freq)
+                control[0, :, 1] = pos[:, 1] + target_vel[:, 1] * (n_substeps / self.sim.freq)
+                control[0, :, 2] = np.full(self.sim.n_drones, height, dtype=np.float32)
+                control[0, :, 3:5] = target_vel[:, :2].astype(np.float32)
+                control[0, :, 9] = np.arctan2(vel[:, 1], vel[:, 0] + 1e-8).astype(np.float32)
 
             self.sim.state_control(control)
             self.sim.step(n_substeps)
@@ -178,8 +229,8 @@ class FlockingEngine:
         vel2 = vel[:, :2]
 
         # Pairwise differences/distances
-        diff = pos2[:, None, :] - pos2[None, :, :]           # (N,N,2)
-        dist = jnp.linalg.norm(diff, axis=-1)                # (N,N)
+        diff = pos2[:, None, :] - pos2[None, :, :]  # (N,N,2)
+        dist = jnp.linalg.norm(diff, axis=-1)  # (N,N)
 
         eye = jnp.eye(pos2.shape[0], dtype=bool)
         mask = (dist < self.perception_radius) & (~eye)
@@ -198,39 +249,22 @@ class FlockingEngine:
             / safe_dist[..., None]
         )
 
-        separation = jnp.sum(
-            jnp.where(sep_mask[..., None], sep_force, 0.0),
-            axis=1,
-        )
+        separation = jnp.sum(jnp.where(sep_mask[..., None], sep_force, 0.0), axis=1)
 
         # ------------------------------------------------------------------
         # Cohesion + Alignment
         # ------------------------------------------------------------------
         counts = jnp.maximum(mask.sum(axis=1, keepdims=True), 1)
 
-        mean_pos = (
-            jnp.where(mask[..., None], pos2[None], 0.0).sum(axis=1)
-            / counts
-        )
+        mean_pos = jnp.where(mask[..., None], pos2[None], 0.0).sum(axis=1) / counts
 
-        mean_vel = (
-            jnp.where(mask[..., None], vel2[None], 0.0).sum(axis=1)
-            / counts
-        )
+        mean_vel = jnp.where(mask[..., None], vel2[None], 0.0).sum(axis=1) / counts
 
         has_neighbors = mask.sum(axis=1, keepdims=True) > 0
 
-        cohesion = (
-            (mean_pos - pos2)
-            * self.cohesion_weight
-            * 0.5
-        )
+        cohesion = (mean_pos - pos2) * self.cohesion_weight * 0.5
 
-        alignment = (
-            (mean_vel - vel2)
-            * self.alignment_weight
-            * 0.5
-        )
+        alignment = (mean_vel - vel2) * self.alignment_weight * 0.5
 
         acc = separation + jnp.where(has_neighbors, cohesion + alignment, 0.0)
 
@@ -247,13 +281,9 @@ class FlockingEngine:
             dx = pos2[:, 0] - cx
             dy = pos2[:, 1] - cy
 
-            acc = acc.at[:, 0].add(
-                -jnp.sign(dx) * jnp.maximum(jnp.abs(dx) - half_w, 0.0) * 2.0
-            )
+            acc = acc.at[:, 0].add(-jnp.sign(dx) * jnp.maximum(jnp.abs(dx) - half_w, 0.0) * 2.0)
 
-            acc = acc.at[:, 1].add(
-                -jnp.sign(dy) * jnp.maximum(jnp.abs(dy) - half_h, 0.0) * 2.0
-            )
+            acc = acc.at[:, 1].add(-jnp.sign(dy) * jnp.maximum(jnp.abs(dy) - half_h, 0.0) * 2.0)
 
         elif self.boundary_mode in ("bounce", "hard"):
             margin = 0.3
@@ -263,19 +293,11 @@ class FlockingEngine:
                 hi = self.bounds[axis * 2 + 1]
 
                 acc = acc.at[:, axis].add(
-                    jnp.where(
-                        pos2[:, axis] < lo + margin,
-                        self.max_speed * 2.0,
-                        0.0,
-                    )
+                    jnp.where(pos2[:, axis] < lo + margin, self.max_speed * 2.0, 0.0)
                 )
 
                 acc = acc.at[:, axis].add(
-                    jnp.where(
-                        pos2[:, axis] > hi - margin,
-                        -self.max_speed * 2.0,
-                        0.0,
-                    )
+                    jnp.where(pos2[:, axis] > hi - margin, -self.max_speed * 2.0, 0.0)
                 )
 
         # ------------------------------------------------------------------
@@ -297,40 +319,24 @@ class FlockingEngine:
             push = (radius - odist) / radius
 
             obs_force = (
-                delta
-                / jnp.maximum(odist[..., None], 1e-6)
-                * push[..., None]
-                * self.max_speed
-                * 3.0
+                delta / jnp.maximum(odist[..., None], 1e-6) * push[..., None] * self.max_speed * 3.0
             )
 
-            acc += jnp.sum(
-                jnp.where(active[..., None], obs_force, 0.0),
-                axis=1,
-            )
+            acc += jnp.sum(jnp.where(active[..., None], obs_force, 0.0), axis=1)
 
         # ------------------------------------------------------------------
         # Limit acceleration
         # ------------------------------------------------------------------
         force_mag = jnp.linalg.norm(acc, axis=1, keepdims=True)
 
-        acc = jnp.where(
-            force_mag > self.max_force,
-            acc * self.max_force / force_mag,
-            acc,
-        )
+        acc = jnp.where(force_mag > self.max_force, acc * self.max_force / force_mag, acc)
 
         target = vel2 + acc * 0.5
 
         speed = jnp.linalg.norm(target, axis=1, keepdims=True)
 
-        target = jnp.where(
-            speed > self.max_speed,
-            target * self.max_speed / speed,
-            target,
-        )
+        target = jnp.where(speed > self.max_speed, target * self.max_speed / speed, target)
 
         return jnp.concatenate(
-            [target, jnp.zeros((target.shape[0], 1), dtype=target.dtype)],
-            axis=1,
+            [target, jnp.zeros((target.shape[0], 1), dtype=target.dtype)], axis=1
         )
