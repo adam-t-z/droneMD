@@ -1289,3 +1289,17 @@ button:disabled {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* ── OBJ Upload ─────────────────────────────────────── */
+
+.swarm-obj-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.swarm-obj-status {
+  font-size: 0.78rem;
+  color: #10b981;
+}
