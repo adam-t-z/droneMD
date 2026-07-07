@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
+import tempfile
+from pathlib import Path
 
 import numpy as np
-from fastapi import APIRouter
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
 from backend.flocking.engine import FlockingEngine
+from backend.flocking.obj_processor import sample_obj_surface
 from backend.flocking.schemas import SwarmConfig
 from backend.utils import generate_default_colors
 
@@ -75,3 +79,25 @@ def simulate_stream(config: SwarmConfig) -> StreamingResponse:
             yield json.dumps({"type": "error", "message": str(exc)}) + "\n"
 
     return StreamingResponse(generate(), media_type="application/x-ndjson")
+
+
+@router.post("/shapes/upload-obj")
+def upload_obj(
+    file: UploadFile = File(...), n_drones: int = Query(default=100, ge=1, le=200)
+) -> dict:
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in (".obj",):
+        raise HTTPException(status_code=400, detail="Only .obj files are accepted")
+
+    tmp_dir = tempfile.mkdtemp(prefix="dronemd_obj_")
+    tmp_path = Path(tmp_dir) / f"upload{suffix}"
+    try:
+        with open(tmp_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        points = sample_obj_surface(str(tmp_path), n_drones)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Failed to process OBJ: {exc}") from exc
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    return {"points": points.tolist(), "n_drones": n_drones}

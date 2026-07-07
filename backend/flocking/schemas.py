@@ -28,3 +28,4 @@ class SwarmConfig(BaseModel):
     state_freq: int = Field(default=100, ge=20, le=200)
     motion_primitive: str = Field(default="none", pattern="^(none|circle|star|cone)$")
     primitive_params: dict = Field(default_factory=dict)
+    obj_points: list[list[float]] | None = Field(default=None)
