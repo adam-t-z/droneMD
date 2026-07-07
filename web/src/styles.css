@@ -539,14 +539,15 @@ button:disabled {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  border-radius: 8px;
-  background: #cfcfcf;
+  border-radius: 0;
+  background: #e2e8f0;
 }
 
 .player-canvas canvas {
   display: block;
   width: 100%;
   height: 100%;
+  image-rendering: auto;
 }
 
 .timeline {
@@ -609,16 +610,16 @@ button:disabled {
 
 .swarm-lab.app-shell {
   grid-template-columns: 1fr;
-  max-width: 1200px;
-  padding: 16px;
-  gap: 16px;
+  max-width: 1440px;
+  padding: 24px;
+  gap: 20px;
 }
 
 .swarm-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
-  gap: 16px;
-  margin-top: 16px;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 2fr);
+  gap: 24px;
+  margin-top: 20px;
 }
 
 .swarm-controls {
@@ -713,29 +714,51 @@ button:disabled {
 }
 
 .swarm-preview {
+  position: relative;
   display: flex;
   flex-direction: column;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #ffffff;
-  min-height: 560px;
+  border: none;
+  border-radius: 0;
+  background: #f1f5f9;
+  min-height: 720px;
+  height: 72vh;
+  max-height: none;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
 .swarm-preview-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px);
   flex-shrink: 0;
+  color: #334155;
 }
 
 .swarm-preview-toolbar .eyebrow {
   margin: 0;
+  color: #64748b;
+}
+
+.swarm-preview-toolbar .secondary-action {
+  border-color: #e2e8f0;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.swarm-preview-toolbar .secondary-action:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
 }
 
 .swarm-preview:fullscreen,
@@ -744,18 +767,18 @@ button:disabled {
   height: 100vh;
   border: 0;
   border-radius: 0;
-  background: #020617;
+  background: #f1f5f9;
 }
 
 .swarm-preview:fullscreen .swarm-preview-toolbar,
 .swarm-preview:-webkit-full-screen .swarm-preview-toolbar {
-  background: #0f172a;
-  border-color: #1e293b;
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(15, 23, 42, 0.08);
 }
 
 .swarm-preview:fullscreen .swarm-preview-toolbar .eyebrow,
 .swarm-preview:-webkit-full-screen .swarm-preview-toolbar .eyebrow {
-  color: #e2e8f0;
+  color: #64748b;
 }
 
 .swarm-placeholder {
@@ -773,9 +796,10 @@ button:disabled {
 
 .swarm-placeholder p {
   margin: 0;
-  font-size: 0.9rem;
-  max-width: 220px;
+  font-size: 0.95rem;
+  max-width: 240px;
   line-height: 1.4;
+  color: #475569;
 }
 
 .swarm-stats {
@@ -818,11 +842,11 @@ button:disabled {
   }
 
   .swarm-preview {
-    min-height: 320px;
+    min-height: 480px;
   }
 
   .swarm-preview-toolbar {
-    padding: 8px 10px;
+    padding: 10px 12px;
   }
 }
 
@@ -877,7 +901,7 @@ button:disabled {
   }
 
   .swarm-preview {
-    min-height: 260px;
+    min-height: 360px;
   }
 
   .swarm-preview-toolbar {

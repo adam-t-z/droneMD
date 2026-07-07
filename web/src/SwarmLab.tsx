@@ -7,8 +7,8 @@ import { ReportPanel } from "./ReportPanel";
 import type { Playback, PlaybackOverlays, SimPhase, SwarmConfig } from "./types";
 
 const DEFAULT_CONFIG: SwarmConfig = {
-  n_drones: 50,
-  duration: 30,
+  n_drones: 15,
+  duration: 20,
   separation_weight: 1.5,
   alignment_weight: 1.0,
   cohesion_weight: 1.0,

@@ -185,10 +185,10 @@ function makeFlightArea(playback: Playback): THREE.Group {
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(width, depth),
     new THREE.MeshStandardMaterial({
-      color: 0x16231f,
-      roughness: 0.8,
+      color: 0xffffff,
+      roughness: 0.9,
       transparent: true,
-      opacity: 0.48,
+      opacity: 0.55,
       side: THREE.DoubleSide
     })
   );
@@ -214,7 +214,7 @@ function makeFlightArea(playback: Playback): THREE.Group {
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(lineVertices, 3));
-  group.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0x7fae98, transparent: true, opacity: 0.7 })));
+  group.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.75 })));
   return group;
 }
 
@@ -239,8 +239,8 @@ export function Player({ playback, overlays, onClose, autoPlay = false, embedded
     }
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xcfcfcf);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    scene.background = new THREE.Color(0xe2e8f0);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(renderer.domElement);
