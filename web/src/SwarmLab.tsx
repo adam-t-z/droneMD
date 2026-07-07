@@ -39,27 +39,92 @@ const PHASES: { key: string; label: string }[] = [
 type SliderDef = {
   key: keyof SwarmConfig;
   label: string;
+  description?: string;
   min: number;
   max: number;
   step: number;
 };
 
+type SelectOption = { value: string; label: string };
+
+type PrimitiveSliderDef = {
+  paramKey: string;
+  label: string;
+  description: string;
+  min: number;
+  max: number;
+  step: number;
+  defaultVal: number;
+};
+
 const DRONE_SLIDERS: SliderDef[] = [
-  { key: "n_drones", label: "Drone Count", min: 10, max: 200, step: 1 },
-  { key: "duration", label: "Duration (s)", min: 5, max: 120, step: 1 },
+  { key: "n_drones", label: "Drone Count", description: "Number of drones in the simulation.\nMore drones create denser swarm behavior,\nbut increase computation time.", min: 10, max: 200, step: 1 },
+  { key: "duration", label: "Duration (s)", description: "Total simulation time in seconds.\nLonger simulations show more developed\nswarming patterns.", min: 5, max: 120, step: 1 },
 ];
 
 const BEHAVIOR_SLIDERS: SliderDef[] = [
-  { key: "separation_weight", label: "Separation", min: 0, max: 5, step: 0.1 },
-  { key: "alignment_weight", label: "Alignment", min: 0, max: 5, step: 0.1 },
-  { key: "cohesion_weight", label: "Cohesion", min: 0, max: 5, step: 0.1 },
-  { key: "perception_radius", label: "Perception Radius", min: 0.5, max: 10, step: 0.1 },
-  { key: "max_speed", label: "Max Speed", min: 0.5, max: 5, step: 0.1 },
-  { key: "max_force", label: "Max Force", min: 0.1, max: 3, step: 0.1 },
+  { key: "separation_weight", label: "Separation", description: "How strongly drones avoid neighbors.\n0 = ignore\n5 = aggressively avoid", min: 0, max: 5, step: 0.1 },
+  { key: "alignment_weight", label: "Alignment", description: "How strongly drones match neighbors'\ndirection.\n0 = ignore\n5 = strictly align", min: 0, max: 5, step: 0.1 },
+  { key: "cohesion_weight", label: "Cohesion", description: "How strongly drones move toward\nthe group center.\n0 = ignore\n5 = tightly cluster", min: 0, max: 5, step: 0.1 },
+  { key: "perception_radius", label: "Perception Radius", description: "How far a drone can sense neighbors.\nLarger values create more connected\nswarms but reduce local responsiveness.", min: 0.5, max: 10, step: 0.1 },
+  { key: "max_speed", label: "Max Speed", description: "Maximum drone speed (m/s).\nHigher speeds enable faster movement\nbut can reduce stability.", min: 0.5, max: 5, step: 0.1 },
+  { key: "max_force", label: "Max Force", description: "Maximum steering acceleration.\nHigher values make drones more\nresponsive but can cause jerky motion.", min: 0.1, max: 3, step: 0.1 },
 ];
+
+const FORMATION_DESC = "None: drones spawn randomly\nHuman Body: spawn in a preset human shape\nUpload OBJ: spawn using a custom 3D model";
+
+const PRIMITIVE_TYPE_DESC = "None: standard flocking behavior\nCircle: drones form a rotating ring\nStar: drones form a rotating star shape\nCone: drones stack into a 3D cone";
+
+const BOUNDARY_MODE_DESC = "How drones behave at the boundary.\nWrap: teleport to opposite side\nBounce: reflect off the wall\nHard: stop at the wall";
+
+const DEVICE_DESC = "CPU: runs on processor (slower, works everywhere)\nGPU: runs on AMD GPU (faster, experimental)";
+
+const PHYSICS_DESC = "First Principles: basic Newtonian physics\nSO(3) RPY: full 3D rotational dynamics\nSO(3) RPY Rotor: adds rotor thrust model\nSO(3) RPY Rotor Drag: adds aerodynamic drag";
+
+const INTEGRATOR_DESC = "Euler: simplest, least accurate, fastest\nRK4: most accurate, slower\nSymplectic Euler: good energy conservation\nwith balanced accuracy/speed";
+
+const ADVANCED_SLIDERS: SliderDef[] = [
+  { key: "freq", label: "Physics Freq", description: "Physics simulation steps per second.\nHigher values improve accuracy\nbut increase computation time.", min: 250, max: 2000, step: 10 },
+  { key: "state_freq", label: "State Ctrl Freq", description: "How often the drone controller updates\nper second. Higher values give\nmore precise control.", min: 20, max: 200, step: 5 },
+];
+
+const CIRCLE_PARAMS: PrimitiveSliderDef[] = [
+  { paramKey: "radius", label: "Radius", description: "Radius of the circular formation.\nLarger circles spread drones farther apart.", min: 0.3, max: 2.0, step: 0.1, defaultVal: 1.5 },
+  { paramKey: "rotation", label: "Rotation (rad/s)", description: "How fast the circle rotates.\nSet to 0 for a static formation.", min: 0, max: 1.5, step: 0.1, defaultVal: 0.3 },
+];
+
+const STAR_PARAMS: PrimitiveSliderDef[] = [
+  { paramKey: "radius", label: "Inner Radius", description: "Distance from center to the inner\nvertices. Smaller values create more\npronounced star points.", min: 0.3, max: 2.0, step: 0.1, defaultVal: 1.2 },
+  { paramKey: "delta_radius", label: "Spoke Gap", description: "How far the outer vertices extend\nbeyond the inner ring.", min: 0.1, max: 1.0, step: 0.05, defaultVal: 0.4 },
+  { paramKey: "rotation", label: "Rotation (rad/s)", description: "How fast the star rotates.\nSet to 0 for a static formation.", min: 0, max: 1.5, step: 0.1, defaultVal: 0.2 },
+];
+
+const CONE_PARAMS: PrimitiveSliderDef[] = [
+  { paramKey: "delta_height", label: "Layer Height", description: "Vertical spacing between each ring\nlayer. Smaller values create a denser cone.", min: 0.1, max: 0.8, step: 0.05, defaultVal: 0.3 },
+  { paramKey: "spacing", label: "Spacing", description: "Horizontal spacing between drones\nwithin each ring.", min: 0.3, max: 1.2, step: 0.05, defaultVal: 0.5 },
+  { paramKey: "rotation", label: "Rotation (rad/s)", description: "How fast the cone rotates.\nSet to 0 for a static formation.", min: 0, max: 1.5, step: 0.1, defaultVal: 0.3 },
+];
+
+const CONE_INVERTED_DESC = "When enabled, the cone apex points\ndown instead of up.";
+
+function ParamTooltip({ description }: { description: string }) {
+  const lines = description.split("\n");
+  return (
+    <span className="param-tooltip-wrap">
+      <span className="param-tooltip-icon">?</span>
+      <span className="param-tooltip-body">
+        {lines.map((line, i) => [
+          i > 0 && <br key={`br-${i}`} />,
+          <span key={i}>{line}</span>,
+        ])}
+      </span>
+    </span>
+  );
+}
 
 function Slider({
   label,
+  description,
   value,
   min,
   max,
@@ -67,6 +132,7 @@ function Slider({
   onChange,
 }: {
   label: string;
+  description?: string;
   value: number;
   min: number;
   max: number;
@@ -75,7 +141,10 @@ function Slider({
 }) {
   return (
     <label className="swarm-slider">
-      <span>{label}</span>
+      <span className="param-label-row">
+        {label}
+        {description && <ParamTooltip description={description} />}
+      </span>
       <div className="swarm-slider-row">
         <input
           type="range"
@@ -87,6 +156,34 @@ function Slider({
         />
         <span className="swarm-slider-value">{value}</span>
       </div>
+    </label>
+  );
+}
+
+function SelectControl({
+  label,
+  description,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  description?: string;
+  value: string;
+  options: SelectOption[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="swarm-slider">
+      <span className="param-label-row">
+        {label}
+        {description && <ParamTooltip description={description} />}
+      </span>
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
     </label>
   );
 }
@@ -303,6 +400,7 @@ export function SwarmLab() {
                 <Slider
                   key={s.key}
                   label={s.label}
+                  description={s.description}
                   value={config[s.key] as number}
                   min={s.min}
                   max={s.max}
@@ -316,20 +414,17 @@ export function SwarmLab() {
               <div className="section-title">
                 <h2>Drone Formation</h2>
               </div>
-              <label className="swarm-slider">
-                <span>Shape</span>
-                <select
-                  value={formationType}
-                  onChange={(e) => {
-                    const v = e.target.value as "none" | "human" | "upload";
-                    void handleFormationChange(v);
-                  }}
-                >
-                  <option value="none">None</option>
-                  <option value="human">Human Body</option>
-                  <option value="upload">Upload OBJ...</option>
-                </select>
-              </label>
+              <SelectControl
+                label="Shape"
+                description={FORMATION_DESC}
+                value={formationType}
+                options={[
+                  { value: "none", label: "None" },
+                  { value: "human", label: "Human Body" },
+                  { value: "upload", label: "Upload OBJ..." },
+                ]}
+                onChange={(v) => void handleFormationChange(v as "none" | "human" | "upload")}
+              />
               {formationType === "upload" && (
                 <div className="swarm-obj-upload">
                   <input
@@ -367,38 +462,32 @@ export function SwarmLab() {
               <div className="section-title">
                 <h2>Motion Primitive</h2>
               </div>
-              <label className="swarm-slider">
-                <span>Shape</span>
-                <select
-                  value={config.motion_primitive}
-                  onChange={(e) =>
-                    updateConfig("motion_primitive", e.target.value as SwarmConfig["motion_primitive"])
-                  }
-                >
-                  <option value="none">None (Flocking)</option>
-                  <option value="circle">Circle</option>
-                  <option value="star">Star</option>
-                  <option value="cone">Cone</option>
-                </select>
-              </label>
+              <SelectControl
+                label="Shape"
+                description={PRIMITIVE_TYPE_DESC}
+                value={config.motion_primitive}
+                options={[
+                  { value: "none", label: "None (Flocking)" },
+                  { value: "circle", label: "Circle" },
+                  { value: "star", label: "Star" },
+                  { value: "cone", label: "Cone" },
+                ]}
+                onChange={(v) => updateConfig("motion_primitive", v as SwarmConfig["motion_primitive"])}
+              />
               {config.motion_primitive === "circle" && (
                 <>
-                  <Slider
-                    label="Radius"
-                    value={getPrimitiveParam("radius", 1.5)}
-                    min={0.3}
-                    max={2.0}
-                    step={0.1}
-                    onChange={(v) => updatePrimitiveParam("radius", v)}
-                  />
-                  <Slider
-                    label="Rotation (rad/s)"
-                    value={getPrimitiveParam("rotation", 0.3)}
-                    min={0}
-                    max={1.5}
-                    step={0.1}
-                    onChange={(v) => updatePrimitiveParam("rotation", v)}
-                  />
+                  {CIRCLE_PARAMS.map((p) => (
+                    <Slider
+                      key={p.paramKey}
+                      label={p.label}
+                      description={p.description}
+                      value={getPrimitiveParam(p.paramKey, p.defaultVal)}
+                      min={p.min}
+                      max={p.max}
+                      step={p.step}
+                      onChange={(v) => updatePrimitiveParam(p.paramKey, v)}
+                    />
+                  ))}
                   <p className="spawn-csv-hint">
                     Drones form a circle and hold the shape continuously (rotate at 0 to hold still).
                   </p>
@@ -406,30 +495,18 @@ export function SwarmLab() {
               )}
               {config.motion_primitive === "star" && (
                 <>
-                  <Slider
-                    label="Inner Radius"
-                    value={getPrimitiveParam("radius", 1.2)}
-                    min={0.3}
-                    max={2.0}
-                    step={0.1}
-                    onChange={(v) => updatePrimitiveParam("radius", v)}
-                  />
-                  <Slider
-                    label="Spoke Gap"
-                    value={getPrimitiveParam("delta_radius", 0.4)}
-                    min={0.1}
-                    max={1.0}
-                    step={0.05}
-                    onChange={(v) => updatePrimitiveParam("delta_radius", v)}
-                  />
-                  <Slider
-                    label="Rotation (rad/s)"
-                    value={getPrimitiveParam("rotation", 0.2)}
-                    min={0}
-                    max={1.5}
-                    step={0.1}
-                    onChange={(v) => updatePrimitiveParam("rotation", v)}
-                  />
+                  {STAR_PARAMS.map((p) => (
+                    <Slider
+                      key={p.paramKey}
+                      label={p.label}
+                      description={p.description}
+                      value={getPrimitiveParam(p.paramKey, p.defaultVal)}
+                      min={p.min}
+                      max={p.max}
+                      step={p.step}
+                      onChange={(v) => updatePrimitiveParam(p.paramKey, v)}
+                    />
+                  ))}
                   <p className="spawn-csv-hint">
                     Two interleaved rings form a star with n/2 spokes; shape is held continuously.
                   </p>
@@ -437,32 +514,23 @@ export function SwarmLab() {
               )}
               {config.motion_primitive === "cone" && (
                 <>
-                  <Slider
-                    label="Layer Height"
-                    value={getPrimitiveParam("delta_height", 0.3)}
-                    min={0.1}
-                    max={0.8}
-                    step={0.05}
-                    onChange={(v) => updatePrimitiveParam("delta_height", v)}
-                  />
-                  <Slider
-                    label="Spacing"
-                    value={getPrimitiveParam("spacing", 0.5)}
-                    min={0.3}
-                    max={1.2}
-                    step={0.05}
-                    onChange={(v) => updatePrimitiveParam("spacing", v)}
-                  />
-                  <Slider
-                    label="Rotation (rad/s)"
-                    value={getPrimitiveParam("rotation", 0.3)}
-                    min={0}
-                    max={1.5}
-                    step={0.1}
-                    onChange={(v) => updatePrimitiveParam("rotation", v)}
-                  />
+                  {CONE_PARAMS.map((p) => (
+                    <Slider
+                      key={p.paramKey}
+                      label={p.label}
+                      description={p.description}
+                      value={getPrimitiveParam(p.paramKey, p.defaultVal)}
+                      min={p.min}
+                      max={p.max}
+                      step={p.step}
+                      onChange={(v) => updatePrimitiveParam(p.paramKey, v)}
+                    />
+                  ))}
                   <label className="swarm-slider">
-                    <span>Inverted</span>
+                    <span className="param-label-row">
+                      Inverted
+                      <ParamTooltip description={CONE_INVERTED_DESC} />
+                    </span>
                     <input
                       type="checkbox"
                       checked={Boolean(config.primitive_params.inverted)}
@@ -490,6 +558,7 @@ export function SwarmLab() {
                     <Slider
                       key={s.key}
                       label={s.label}
+                      description={s.description}
                       value={config[s.key] as number}
                       min={s.min}
                       max={s.max}
@@ -511,31 +580,27 @@ export function SwarmLab() {
               </button>
               {showEnvironment && (
                 <div className="swarm-advanced-body">
-                  <label className="swarm-slider">
-                    <span>Boundary Mode</span>
-                    <select
-                      value={config.boundary_mode}
-                      onChange={(e) =>
-                        updateConfig("boundary_mode", e.target.value as SwarmConfig["boundary_mode"])
-                      }
-                    >
-                      <option value="wrap">Wrap</option>
-                      <option value="bounce">Bounce</option>
-                      <option value="hard">Hard</option>
-                    </select>
-                  </label>
-                  <label className="swarm-slider">
-                    <span>Device</span>
-                    <select
-                      value={config.device}
-                      onChange={(e) =>
-                        updateConfig("device", e.target.value as SwarmConfig["device"])
-                      }
-                    >
-                      <option value="cpu">CPU</option>
-                      <option value="gpu">GPU</option>
-                    </select>
-                  </label>
+                  <SelectControl
+                    label="Boundary Mode"
+                    description={BOUNDARY_MODE_DESC}
+                    value={config.boundary_mode}
+                    options={[
+                      { value: "wrap", label: "Wrap" },
+                      { value: "bounce", label: "Bounce" },
+                      { value: "hard", label: "Hard" },
+                    ]}
+                    onChange={(v) => updateConfig("boundary_mode", v as SwarmConfig["boundary_mode"])}
+                  />
+                  <SelectControl
+                    label="Device"
+                    description={DEVICE_DESC}
+                    value={config.device}
+                    options={[
+                      { value: "cpu", label: "CPU" },
+                      { value: "gpu", label: "GPU" },
+                    ]}
+                    onChange={(v) => updateConfig("device", v as SwarmConfig["device"])}
+                  />
                 </div>
               )}
             </div>
@@ -550,49 +615,41 @@ export function SwarmLab() {
               </button>
               {showAdvanced && (
                 <div className="swarm-advanced-body">
-                  <label className="swarm-slider">
-                    <span>Physics Model</span>
-                    <select
-                      value={config.physics}
-                      onChange={(e) =>
-                        updateConfig("physics", e.target.value as SwarmConfig["physics"])
-                      }
-                    >
-                      <option value="first_principles">First Principles</option>
-                      <option value="so_rpy">SO(3) RPY</option>
-                      <option value="so_rpy_rotor">SO(3) RPY Rotor</option>
-                      <option value="so_rpy_rotor_drag">SO(3) RPY Rotor Drag</option>
-                    </select>
-                  </label>
-                  <label className="swarm-slider">
-                    <span>Integrator</span>
-                    <select
-                      value={config.integrator}
-                      onChange={(e) =>
-                        updateConfig("integrator", e.target.value as SwarmConfig["integrator"])
-                      }
-                    >
-                      <option value="euler">Euler</option>
-                      <option value="rk4">RK4</option>
-                      <option value="symplectic_euler">Symplectic Euler</option>
-                    </select>
-                  </label>
-                  <Slider
-                    label="Physics Freq"
-                    value={config.freq}
-                    min={250}
-                    max={2000}
-                    step={10}
-                    onChange={(v) => updateConfig("freq", v)}
+                  <SelectControl
+                    label="Physics Model"
+                    description={PHYSICS_DESC}
+                    value={config.physics}
+                    options={[
+                      { value: "first_principles", label: "First Principles" },
+                      { value: "so_rpy", label: "SO(3) RPY" },
+                      { value: "so_rpy_rotor", label: "SO(3) RPY Rotor" },
+                      { value: "so_rpy_rotor_drag", label: "SO(3) RPY Rotor Drag" },
+                    ]}
+                    onChange={(v) => updateConfig("physics", v as SwarmConfig["physics"])}
                   />
-                  <Slider
-                    label="State Ctrl Freq"
-                    value={config.state_freq}
-                    min={20}
-                    max={200}
-                    step={5}
-                    onChange={(v) => updateConfig("state_freq", v)}
+                  <SelectControl
+                    label="Integrator"
+                    description={INTEGRATOR_DESC}
+                    value={config.integrator}
+                    options={[
+                      { value: "euler", label: "Euler" },
+                      { value: "rk4", label: "RK4" },
+                      { value: "symplectic_euler", label: "Symplectic Euler" },
+                    ]}
+                    onChange={(v) => updateConfig("integrator", v as SwarmConfig["integrator"])}
                   />
+                  {ADVANCED_SLIDERS.map((s) => (
+                    <Slider
+                      key={s.key}
+                      label={s.label}
+                      description={s.description}
+                      value={config[s.key] as number}
+                      min={s.min}
+                      max={s.max}
+                      step={s.step}
+                      onChange={(v) => updateConfig(s.key as keyof SwarmConfig, v)}
+                    />
+                  ))}
                 </div>
               )}
             </div>
