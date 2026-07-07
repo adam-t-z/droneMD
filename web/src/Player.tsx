@@ -299,14 +299,18 @@ export function Player({ playback, overlays, onClose, autoPlay = false, embedded
       collisionRings.push(glow);
     });
 
-    const onResize = () => {
-      const width = mount.clientWidth;
-      const height = mount.clientHeight;
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
-    };
-    window.addEventListener("resize", onResize);
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        const height = entry.contentRect.height;
+        if (width > 0 && height > 0) {
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+          renderer.setSize(width, height);
+        }
+      }
+    });
+    resizeObserver.observe(mount);
 
     sceneRef.current = {
       renderer,
@@ -324,7 +328,7 @@ export function Player({ playback, overlays, onClose, autoPlay = false, embedded
     };
 
     return () => {
-      window.removeEventListener("resize", onResize);
+      resizeObserver.disconnect();
       const active = sceneRef.current;
       if (active && active.animationId !== null) {
         cancelAnimationFrame(active.animationId);
