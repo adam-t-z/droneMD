@@ -21,6 +21,97 @@ from backend.routes.schemas import SwarmConfig
 logger = logging.getLogger(__name__)
 
 
+def detect_gpu_platform() -> str:
+    """Detect the actual GPU platform JAX is using.
+
+    Returns one of ``"rocm"``, ``"cuda"``, or ``"cpu"``.
+    Resolves the generic ``"gpu"`` request to the concrete backend.
+    """
+    try:
+        devices = jax.devices("gpu")
+    except RuntimeError:
+        return "cpu"
+
+    if not devices:
+        return "cpu"
+
+    platform = getattr(devices[0], "platform", "").lower()
+    if "rocm" in platform:
+        return "rocm"
+    if "cuda" in platform or "gpu" in platform:
+        return "cuda"
+    return "cpu"
+
+
+def resolve_device(requested: str) -> tuple[str, str]:
+    """Resolve a user-requested device to (crazyflow_device, actual_platform).
+
+    Args:
+        requested: One of ``"cpu"``, ``"cuda"``, ``"rocm"``, ``"gpu"``.
+
+    Returns:
+        ``(cf_device, platform)`` where *cf_device* is ``"cpu"`` or ``"gpu"``
+        (passed to crazyflow) and *platform* is
+        ``"rocm"``, ``"cuda"``, or ``"cpu"`` (the actual detected backend).
+    """
+    if requested == "cpu":
+        return "cpu", "cpu"
+
+    if requested == "gpu":
+        platform = detect_gpu_platform()
+        if platform == "cpu":
+            logger.warning("GPU requested but not available; falling back to CPU")
+        return "gpu" if platform != "cpu" else "cpu", platform
+
+    if requested == "rocm":
+        platform = detect_gpu_platform()
+        if platform != "rocm":
+            logger.warning(
+                "ROCm requested but detected %s; attempting with available GPU", platform
+            )
+        return "gpu" if platform != "cpu" else "cpu", platform
+
+    if requested == "cuda":
+        platform = detect_gpu_platform()
+        if platform != "cuda":
+            logger.warning(
+                "CUDA requested but detected %s; attempting with available GPU", platform
+            )
+        return "gpu" if platform != "cpu" else "cpu", platform
+
+    logger.warning("Unknown device '%s'; falling back to CPU", requested)
+    return "cpu", "cpu"
+
+
+def get_device_info(platform: str) -> dict[str, str]:
+    """Get descriptive information about the compute device in use.
+
+    Returns a dict with ``"platform"``, ``"device_name"``, and
+    ``"device_kind"`` keys suitable for display and benchmarking.
+    """
+    info: dict[str, str] = {"platform": platform, "device_name": "Unknown", "device_kind": platform}
+
+    if platform == "cpu":
+        info["device_name"] = "CPU"
+        info["device_kind"] = "cpu"
+        return info
+
+    try:
+        devices = jax.devices("gpu")
+        if not devices:
+            return info
+        d = devices[0]
+        name = getattr(d, "device_kind", "") or getattr(d, "device_vendor", "") or ""
+        if not name:
+            name = f"{platform.upper()} GPU"
+        info["device_name"] = name
+        info["device_kind"] = name
+    except RuntimeError:
+        pass
+
+    return info
+
+
 class FlockingEngine:
     """Wraps crazyflow.Sim with a Boids flocking controller.
 
@@ -31,13 +122,7 @@ class FlockingEngine:
     def __init__(self, config: SwarmConfig) -> None:
         self.config = config
 
-        device = config.device
-        if device == "gpu":
-            try:
-                jax.devices("gpu")
-            except RuntimeError:
-                logger.warning("GPU requested but not available; falling back to CPU")
-                device = "cpu"
+        cf_device, self.gpu_platform = resolve_device(config.device)
 
         self.sim = Sim(
             n_worlds=1,
@@ -48,7 +133,8 @@ class FlockingEngine:
             integrator=Integrator[config.integrator],
             freq=config.freq,
             state_freq=config.state_freq,
-            device=device,
+            device="gpu",
+            # device=cf_device,
         )
 
         self.sim.reset()
@@ -235,5 +321,7 @@ class FlockingEngine:
             "waypoints": {},
             "solve_times": np.array([]),
             "overlays": {"collisions_per_frame": collisions_per_frame, "speeds": speeds.tolist()},
+            "gpu_platform": self.gpu_platform,
+            "device_info": get_device_info(self.gpu_platform),
         }
         yield ("Simulation complete", 100)

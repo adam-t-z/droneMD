@@ -10,7 +10,7 @@ export type SwarmConfig = {
   boundary_mode: "wrap" | "bounce" | "hard";
   bounds: [number, number, number, number];
   obstacles: { x: number; y: number; radius: number }[];
-  device: "cpu" | "gpu";
+  device: "cpu" | "cuda" | "rocm" | "gpu";
   physics: "first_principles" | "so_rpy" | "so_rpy_rotor" | "so_rpy_rotor_drag";
   integrator: "euler" | "rk4" | "symplectic_euler";
   freq: number;
@@ -19,6 +19,12 @@ export type SwarmConfig = {
   motion_primitive: "none" | "circle" | "star" | "cone";
   primitive_params: Record<string, unknown>;
   obj_points: number[][] | null;
+};
+
+export type DeviceInfo = {
+  platform: string;
+  device_name: string;
+  device_kind: string;
 };
 
 export type PlaybackOverlays = {
@@ -46,6 +52,8 @@ export type Playback = {
   colors: number[][];
   sampleRate: number;
   overlays?: PlaybackOverlays;
+  gpuPlatform?: string;
+  deviceInfo?: DeviceInfo;
 };
 
 export type SimPhase = {

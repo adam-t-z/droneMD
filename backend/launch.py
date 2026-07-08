@@ -1,20 +1,21 @@
 """Launch script for the DroneMD flocking simulation."""
 
+from __future__ import annotations
+
 import logging
 import os
-import sys
 
 import uvicorn
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-
-if sys.platform == "darwin":
-    os.environ.setdefault("JAX_PLATFORMS", "cpu")
+os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 
 
 def main(host: str = "127.0.0.1", port: int = 8000):
     """Launch the DroneMD browser API."""
-    logging.basicConfig(level=logging.WARNING)
+    logging.basicConfig(
+        level=logging.WARNING, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s"
+    )
     logging.getLogger("jax").setLevel(logging.WARNING)
 
     from backend.api.server import app

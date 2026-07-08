@@ -45,6 +45,10 @@ def _normalize_swarm_playback(sim_data: dict, config: SwarmConfig) -> dict:
         },
         "colors": colors.tolist(),
         "sampleRate": sample_rate,
+        "gpuPlatform": sim_data.get("gpu_platform", "cpu"),
+        "deviceInfo": sim_data.get(
+            "device_info", {"platform": "cpu", "device_name": "CPU", "device_kind": "cpu"}
+        ),
     }
     if overlays:
         result["overlays"] = overlays
