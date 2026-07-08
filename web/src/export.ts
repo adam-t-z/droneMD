@@ -410,6 +410,7 @@ export function buildReportText(
   report?: SimReport,
 ): string {
   const r = report ?? computeReport(playback, overlays);
+  const gpu = playback.gpuMetrics;
   const now = new Date().toISOString().replace("T", " ").slice(0, 19);
   const lines = [
     "=".repeat(55),
@@ -426,7 +427,7 @@ export function buildReportText(
     `  Physics:          ${config.physics}`,
     `  Integrator:       ${config.integrator}`,
     "",
-    "  --- Key Metrics ---",
+    "  --- Flight Metrics ---",
     `  Avg Speed:           ${r.avgSpeed.toFixed(2)} m/s`,
     `  Max Speed:           ${r.maxSpeed.toFixed(2)} m/s`,
     `  Min Distance:        ${r.minDistance.toFixed(3)} m`,
@@ -443,10 +444,33 @@ export function buildReportText(
     "",
     `  Collision Timeline: ${r.collisionTimeline.filter((c) => c > 0).length} frames with collisions out of ${r.collisionTimeline.length} total frames`,
     "",
+    "  --- Safety & Communication ---",
+    `  Area Coverage:       ${r.coveragePercent}%`,
+    `  Safety Score:        ${r.safetyScore}% (${r.safetyScore > 80 ? "Good" : r.safetyScore > 50 ? "Fair" : "Poor"})`,
+    `  Near Misses:         ${r.nearMisses}`,
+    "",
+  ];
+
+  if (gpu) {
+    lines.push(
+      "  --- GPU Benchmark ---",
+      `  Platform:            ${gpu.platform.toUpperCase()}  (${gpu.device_name})`,
+      `  Wall Time:           ${gpu.sim_time_seconds.toFixed(1)}s`,
+      `  Throughput:          ${gpu.timesteps_per_second.toLocaleString()} steps/s`,
+      `  Process Memory:      ${gpu.device_memory_mb != null ? gpu.device_memory_mb + " MB" : "—"}`,
+      `  Drone Count:         ${gpu.num_drones}`,
+      `  Duration:            ${gpu.duration_seconds}s`,
+      `  Physics Freq:        ${gpu.physics_freq_hz} Hz`,
+      `  Control Freq:        ${gpu.control_freq_hz} Hz`,
+      "",
+    );
+  }
+
+  lines.push(
     "=".repeat(55),
     "  End of Report",
     "=".repeat(55),
-  ];
+  );
   return lines.join("\n");
 }
 
@@ -465,6 +489,7 @@ export function buildReportHtml(
   }).join("");
 
   const scoreColor = (v: number) => v > 80 ? "#16a34a" : v > 50 ? "#d97706" : "#dc2626";
+  const gpu = playback.gpuMetrics;
 
   const chartW = 800;
   const chartH = 200;
@@ -503,6 +528,10 @@ export function buildReportHtml(
   .chart-cell svg { max-width: 100%; height: auto; }
   .chart-label { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
   .footer { margin-top: 32px; color: #94a3b8; font-size: 0.75rem; text-align: center; }
+  .safety-summary { display: flex; gap: 24px; justify-content: space-around; padding: 16px 0; margin-bottom: 16px; border: 1px solid #f1f5f9; border-radius: 10px; background: #fafbfc; }
+  .safety-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .safety-stat-value { font-size: 1.5rem; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
+  .safety-stat-label { font-size: 0.68rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
   @media print { body { padding: 16px; } .chart-grid { page-break-inside: avoid; } }
 </style>
 </head>
@@ -530,7 +559,7 @@ export function buildReportHtml(
     <tr><td>Total Distance</td><td class="value" colspan="3">${r.totalDistance.toFixed(1)} m</td></tr>
   </table>
 
-  <h2>Charts</h2>
+  <h2>Performance Charts</h2>
   <div class="chart-grid">
     <div class="chart-cell">
       <span class="chart-label">Mean Speed over Time</span>
@@ -540,6 +569,28 @@ export function buildReportHtml(
       <span class="chart-label">Formation Error over Time</span>
       ${formationChart}
     </div>
+    <div class="chart-cell">
+      <span class="chart-label">Path Efficiency per Drone</span>
+      ${pathEffChart}
+    </div>
+  </div>
+
+  <h2>Safety &amp; Communication</h2>
+  <div class="safety-summary">
+    <div class="safety-stat">
+      <span class="safety-stat-value">${r.coveragePercent}%</span>
+      <span class="safety-stat-label">Area Coverage</span>
+    </div>
+    <div class="safety-stat">
+      <span class="safety-stat-value" style="color:${scoreColor(r.safetyScore)}">${r.safetyScore}%</span>
+      <span class="safety-stat-label">Safety Score</span>
+    </div>
+    <div class="safety-stat">
+      <span class="safety-stat-value" style="color:#d97706">${r.nearMisses.toLocaleString()}</span>
+      <span class="safety-stat-label">Near Misses</span>
+    </div>
+  </div>
+  <div class="chart-grid">
     <div class="chart-cell">
       <span class="chart-label">Collisions per Frame</span>
       ${collisionChart}
@@ -552,11 +603,19 @@ export function buildReportHtml(
       <span class="chart-label">Connectivity Density</span>
       ${connectivityChart}
     </div>
-    <div class="chart-cell">
-      <span class="chart-label">Path Efficiency per Drone</span>
-      ${pathEffChart}
-    </div>
   </div>
+
+  ${gpu ? `
+  <h2>GPU Benchmarks</h2>
+  <table>
+    <tr><th>Metric</th><th>Value</th><th>Metric</th><th>Value</th></tr>
+    <tr><td>Compute Platform</td><td class="value">${gpu.platform.toUpperCase()}</td><td>Device Name</td><td class="value">${gpu.device_name}</td></tr>
+    <tr><td>Wall Time</td><td class="value">${gpu.sim_time_seconds.toFixed(1)}s</td><td>Throughput</td><td class="value">${gpu.timesteps_per_second.toLocaleString()} steps/s</td></tr>
+    <tr><td>Process Memory</td><td class="value">${gpu.device_memory_mb != null ? gpu.device_memory_mb + ' MB' : '—'}</td><td>Drone Count</td><td class="value">${gpu.num_drones}</td></tr>
+    <tr><td>Duration</td><td class="value">${gpu.duration_seconds}s</td><td>Physics Freq</td><td class="value">${gpu.physics_freq_hz} Hz</td></tr>
+    <tr><td>Control Freq</td><td class="value" colspan="3">${gpu.control_freq_hz} Hz</td></tr>
+  </table>
+  ` : ""}
 
   <div class="footer">DroneMD &mdash; Generated by DroneMD</div>
 </body>

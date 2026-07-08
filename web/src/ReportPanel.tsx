@@ -101,7 +101,6 @@ export function ReportPanel({
   onExportPDF,
 }: ReportPanelProps) {
   const [isOpen, setIsOpen] = useState(true);
-  const [chartTab, setChartTab] = useState<"performance" | "safety" | "gpu">("performance");
 
   const report = useMemo(() => computeReport(playback, overlays), [playback, overlays]);
 
@@ -208,144 +207,122 @@ export function ReportPanel({
             <MetricCard label="Total Distance" value={report.totalDistance.toFixed(1)} unit="m" hint="Cumulative distance all drones" />
           </div>
 
-          {/* Chart tabs */}
-          <div className="report-chart-tabs">
-            <button
-              className={`report-chart-tab ${chartTab === "performance" ? "active" : ""}`}
-              onClick={() => setChartTab("performance")}
-            >
-              Performance
-            </button>
-            <button
-              className={`report-chart-tab ${chartTab === "safety" ? "active" : ""}`}
-              onClick={() => setChartTab("safety")}
-            >
-              Safety &amp; Communication
-            </button>
-            <button
-              className={`report-chart-tab ${chartTab === "gpu" ? "active" : ""}`}
-              onClick={() => setChartTab("gpu")}
-            >
-              GPU Benchmarks
-            </button>
+          {/* Part 1 — Performance */}
+          <h3 className="report-section-heading">Performance</h3>
+          <div className="report-charts-grid">
+            <ChartSection title="Mean Speed over Time">
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={speedData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="time" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "s", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={40} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v).toFixed(2)} m/s`, "Mean Speed"]} labelFormatter={(l) => `t = ${l}s`} />
+                  <Area type="monotone" dataKey="value" stroke={CHART_COLORS.blue} fill={CHART_COLORS.blue} fillOpacity={0.12} strokeWidth={1.5} dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartSection>
+
+            <ChartSection title="Formation Error over Time">
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={formationData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="time" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "s", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={44} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v).toFixed(3)} m`, "Formation Error"]} labelFormatter={(l) => `t = ${l}s`} />
+                  <Line type="monotone" dataKey="value" stroke={CHART_COLORS.purple} strokeWidth={1.5} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartSection>
+
+            <ChartSection title="Energy Usage">
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={speedData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="time" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "s", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={44} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${(Number(v) * Number(v)).toFixed(2)} m²/s²`, "Energy"]} labelFormatter={(l) => `t = ${l}s`} />
+                  <Area type="monotone" dataKey="value" stroke={CHART_COLORS.cyan} fill={CHART_COLORS.cyan} fillOpacity={0.1} strokeWidth={1.5} dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartSection>
+
+            <ChartSection title="Path Efficiency per Drone">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={pathEffData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="drone" tick={{ fontSize: 9, fill: "#94a3b8" }} tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(pathEffData.length / 15))} />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={40} domain={[0, 100]} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v).toFixed(1)}%`, "Efficiency"]} />
+                  <Bar dataKey="efficiency" fill={CHART_COLORS.blue} radius={[2, 2, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartSection>
           </div>
 
-          {chartTab === "performance" && (
-            <div className="report-charts-grid">
-              <ChartSection title="Mean Speed over Time">
-                <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={speedData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="time" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "s", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
-                    <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={40} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v).toFixed(2)} m/s`, "Mean Speed"]} labelFormatter={(l) => `t = ${l}s`} />
-                    <Area type="monotone" dataKey="value" stroke={CHART_COLORS.blue} fill={CHART_COLORS.blue} fillOpacity={0.12} strokeWidth={1.5} dot={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartSection>
+          {/* Part 2 — Safety & Communication */}
+          <h3 className="report-section-heading">Safety &amp; Communication</h3>
+          <div className="report-charts-grid">
+            <ChartSection title="Collisions per Frame">
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={collisionData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="time" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "s", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={36} allowDecimals={false} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v)}`, "Collisions"]} labelFormatter={(l) => `t = ${l}s`} />
+                  <Area type="stepAfter" dataKey="value" stroke={CHART_COLORS.red} fill={CHART_COLORS.red} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartSection>
 
-              <ChartSection title="Formation Error over Time">
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={formationData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="time" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "s", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
-                    <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={44} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v).toFixed(3)} m`, "Formation Error"]} labelFormatter={(l) => `t = ${l}s`} />
-                    <Line type="monotone" dataKey="value" stroke={CHART_COLORS.purple} strokeWidth={1.5} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartSection>
+            <ChartSection title="Near Misses per Frame (0.3&ndash;0.6m)">
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={nearMissData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="index" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "sample", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={40} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v)}`, "Near Misses"]} />
+                  <Line type="monotone" dataKey="value" stroke={CHART_COLORS.amber} strokeWidth={1.5} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartSection>
 
-              <ChartSection title="Energy Usage">
-                <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={speedData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="time" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "s", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
-                    <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={44} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${(Number(v) * Number(v)).toFixed(2)} m²/s²`, "Energy"]} labelFormatter={(l) => `t = ${l}s`} />
-                    <Area type="monotone" dataKey="value" stroke={CHART_COLORS.cyan} fill={CHART_COLORS.cyan} fillOpacity={0.1} strokeWidth={1.5} dot={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartSection>
+            <ChartSection title="Connectivity Density">
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={connectivityData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="index" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "sample", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={40} unit="%" />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v)}%`, "Connected"]} />
+                  <Line type="monotone" dataKey="value" stroke={CHART_COLORS.green} strokeWidth={1.5} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartSection>
 
-              <ChartSection title="Path Efficiency per Drone">
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={pathEffData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="drone" tick={{ fontSize: 9, fill: "#94a3b8" }} tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(pathEffData.length / 15))} />
-                    <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={40} domain={[0, 100]} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v).toFixed(1)}%`, "Efficiency"]} />
-                    <Bar dataKey="efficiency" fill={CHART_COLORS.blue} radius={[2, 2, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartSection>
-            </div>
-          )}
-
-          {chartTab === "safety" && (
-            <div className="report-charts-grid">
-              <ChartSection title="Collisions per Frame">
-                <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={collisionData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="time" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "s", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
-                    <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={36} allowDecimals={false} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v)}`, "Collisions"]} labelFormatter={(l) => `t = ${l}s`} />
-                    <Area type="stepAfter" dataKey="value" stroke={CHART_COLORS.red} fill={CHART_COLORS.red} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartSection>
-
-              <ChartSection title="Near Misses per Frame (0.3&ndash;0.6m)">
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={nearMissData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="index" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "sample", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
-                    <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={40} />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v)}`, "Near Misses"]} />
-                    <Line type="monotone" dataKey="value" stroke={CHART_COLORS.amber} strokeWidth={1.5} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartSection>
-
-              <ChartSection title="Connectivity Density">
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={connectivityData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="index" tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} label={{ value: "sample", position: "insideBottomRight", offset: -4, fontSize: 10, fill: "#94a3b8" }} />
-                    <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} tickLine={false} axisLine={false} width={40} unit="%" />
-                    <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} formatter={(v) => [`${Number(v)}%`, "Connected"]} />
-                    <Line type="monotone" dataKey="value" stroke={CHART_COLORS.green} strokeWidth={1.5} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartSection>
-
-              <ChartSection title="Coverage &amp; Safety Overview">
-                <div className="report-coverage-summary">
-                  <div className="report-coverage-stat">
-                    <span className="report-coverage-value">{report.coveragePercent}%</span>
-                    <span className="report-coverage-label">Area Coverage</span>
-                  </div>
-                  <div className="report-coverage-stat">
-                    <span className="report-coverage-value" style={{ color: safetyScoreColor }}>{report.safetyScore}%</span>
-                    <span className="report-coverage-label">Safety Score</span>
-                  </div>
-                  <div className="report-coverage-stat">
-                    <span className="report-coverage-value" style={{ color: CHART_COLORS.amber }}>{report.nearMisses.toLocaleString()}</span>
-                    <span className="report-coverage-label">Near Misses</span>
-                  </div>
+            <ChartSection title="Coverage &amp; Safety Overview">
+              <div className="report-coverage-summary">
+                <div className="report-coverage-stat">
+                  <span className="report-coverage-value">{report.coveragePercent}%</span>
+                  <span className="report-coverage-label">Area Coverage</span>
                 </div>
-              </ChartSection>
-            </div>
-          )}
+                <div className="report-coverage-stat">
+                  <span className="report-coverage-value" style={{ color: safetyScoreColor }}>{report.safetyScore}%</span>
+                  <span className="report-coverage-label">Safety Score</span>
+                </div>
+                <div className="report-coverage-stat">
+                  <span className="report-coverage-value" style={{ color: CHART_COLORS.amber }}>{report.nearMisses.toLocaleString()}</span>
+                  <span className="report-coverage-label">Near Misses</span>
+                </div>
+              </div>
+            </ChartSection>
+          </div>
 
-          {chartTab === "gpu" && (
-            <BenchmarkCard
-              gpuMetrics={playback.gpuMetrics}
-              deviceInfo={playback.deviceInfo}
-              gpuPlatform={playback.gpuPlatform}
-            />
-          )}
+          {/* Part 3 — GPU Benchmarks */}
+          <h3 className="report-section-heading">GPU Benchmarks</h3>
+          <BenchmarkCard
+            gpuMetrics={playback.gpuMetrics}
+            deviceInfo={playback.deviceInfo}
+            gpuPlatform={playback.gpuPlatform}
+          />
 
           {/* Export actions */}
           <div className="report-actions">

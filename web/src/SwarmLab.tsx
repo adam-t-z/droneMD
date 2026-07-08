@@ -232,6 +232,7 @@ export function SwarmLab() {
   const [showEnvironment, setShowEnvironment] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [formationType, setFormationType] = useState<"none" | "human" | "upload">("none");
   const [objUploading, setObjUploading] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -312,6 +313,8 @@ export function SwarmLab() {
       const { overlays: ov, ...rest } = result;
       setPlayback(rest);
       setOverlays(ov ?? null);
+      setToast("Report ready, scroll down to see");
+      setTimeout(() => setToast(null), 5000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Simulation failed");
     } finally {
@@ -368,6 +371,7 @@ export function SwarmLab() {
   return (
     <main className="app-shell swarm-lab">
       <section className="workspace">
+        {toast && <div className="report-toast">{toast}</div>}
         <header className="topbar">
           <div>
             <h1>DroneMD</h1>

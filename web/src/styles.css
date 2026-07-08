@@ -1075,6 +1075,22 @@ button:disabled {
 
 /* ── Report Panel ────────────────────────────────────── */
 
+.report-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  background: #eb2c25;
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 4px 20px rgba(235, 37, 37, 0.35);
+  pointer-events: none;
+}
+
 .report-panel {
   margin-top: 16px;
   border: 1px solid #e2e8f0;
@@ -1186,6 +1202,17 @@ button:disabled {
   height: 24px;
   background: #e2e8f0;
   margin: 0 4px;
+}
+
+.report-section-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+  padding: 8px 0 2px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 /* ── Report Charts ────────────────────────────────────── */
