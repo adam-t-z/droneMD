@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { BenchmarkCard } from "./BenchmarkCard";
 import { computeReport, formatDuration } from "./export";
 import type { Playback, PlaybackOverlays } from "./types";
 
@@ -100,7 +101,7 @@ export function ReportPanel({
   onExportPDF,
 }: ReportPanelProps) {
   const [isOpen, setIsOpen] = useState(true);
-  const [chartTab, setChartTab] = useState<"performance" | "safety">("performance");
+  const [chartTab, setChartTab] = useState<"performance" | "safety" | "gpu">("performance");
 
   const report = useMemo(() => computeReport(playback, overlays), [playback, overlays]);
 
@@ -221,6 +222,12 @@ export function ReportPanel({
             >
               Safety &amp; Communication
             </button>
+            <button
+              className={`report-chart-tab ${chartTab === "gpu" ? "active" : ""}`}
+              onClick={() => setChartTab("gpu")}
+            >
+              GPU Benchmarks
+            </button>
           </div>
 
           {chartTab === "performance" && (
@@ -330,6 +337,14 @@ export function ReportPanel({
                 </div>
               </ChartSection>
             </div>
+          )}
+
+          {chartTab === "gpu" && (
+            <BenchmarkCard
+              gpuMetrics={playback.gpuMetrics}
+              deviceInfo={playback.deviceInfo}
+              gpuPlatform={playback.gpuPlatform}
+            />
           )}
 
           {/* Export actions */}

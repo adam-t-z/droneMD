@@ -1282,6 +1282,157 @@ button:disabled {
   letter-spacing: 0.04em;
 }
 
+/* ── GPU Benchmark ───────────────────────────────────── */
+
+.bench-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bench-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.bench-loading {
+  padding: 12px;
+  font-size: 0.78rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.bench-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid;
+  border-radius: 10px;
+}
+
+.bench-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bench-banner-right {
+  display: flex;
+  gap: 6px;
+}
+
+.bench-platform-pill {
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bench-device-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.bench-tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+/* ── Benchmark History Table ──────────────────────────── */
+
+.bench-history-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bench-history-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.bench-history-count {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.bench-history-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+}
+
+.bench-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.bench-history-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.bench-history-table td {
+  padding: 7px 10px;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.bench-history-table tr:last-child td {
+  border-bottom: none;
+}
+
+.bench-mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-feature-settings: "tnum";
+}
+
+.bench-platform-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.bench-why-section {
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.bench-why-section p {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: #64748b;
+}
+
 /* ── Export Actions ──────────────────────────────────── */
 
 .swarm-export-actions {
