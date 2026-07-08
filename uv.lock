@@ -501,8 +501,6 @@ all = [
     { name = "drone-controllers" },
     { name = "drone-models" },
     { name = "jax" },
-    { name = "jax-cuda12-pjrt", marker = "sys_platform == 'linux'" },
-    { name = "jax-cuda12-plugin", marker = "sys_platform == 'linux'" },
     { name = "mkdocs" },
     { name = "mkdocs-gen-files" },
     { name = "mkdocs-literate-nav" },
@@ -548,9 +546,7 @@ requires-dist = [
     { name = "fire" },
     { name = "jax", specifier = ">=0.7" },
     { name = "jax", marker = "extra == 'all'", specifier = ">=0.7" },
-    { name = "jax-cuda12-pjrt", marker = "sys_platform == 'linux' and extra == 'all'", specifier = "==0.10.1" },
     { name = "jax-cuda12-pjrt", marker = "sys_platform == 'linux' and extra == 'cuda'", specifier = "==0.10.1" },
-    { name = "jax-cuda12-plugin", marker = "sys_platform == 'linux' and extra == 'all'", specifier = "==0.10.1" },
     { name = "jax-cuda12-plugin", marker = "sys_platform == 'linux' and extra == 'cuda'", specifier = "==0.10.1" },
     { name = "mkdocs", marker = "extra == 'all'" },
     { name = "mkdocs-gen-files", marker = "extra == 'all'" },
@@ -579,7 +575,7 @@ requires-dist = [
     { name = "trimesh", specifier = ">=4.12.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0,<1.0.0" },
 ]
-provides-extras = ["cuda", "test", "dev", "all"]
+provides-extras = ["cuda", "rocm", "test", "dev", "all"]
 
 [[package]]
 name = "einops"

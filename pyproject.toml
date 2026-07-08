@@ -52,6 +52,12 @@ cuda = [
     "jax-cuda12-pjrt==0.10.1; sys_platform == 'linux'",
 ]
 
+rocm = [
+    # AMD ROCm JAX packages are hosted on repo.radeon.com, NOT PyPI.
+    # Run: bash scripts/install_rocm_jax.sh
+    # The wheel URLs include the correct ROCm build (e.g., jax-rocm7-pjrt, jax-rocm7-plugin).
+]
+
 test = [
     "pytest>=8.4.1",
     "pytest-timeout>=2.1.0",
@@ -70,8 +76,6 @@ all = [
     "drone-models==0.1.0",
     "drone-controllers==0.1.0",
     "jax >= 0.7",
-    "jax-cuda12-plugin==0.10.1; sys_platform == 'linux'",
-    "jax-cuda12-pjrt==0.10.1; sys_platform == 'linux'",
     "pytest>=8.4.1",
     "pytest-timeout>=2.1.0",
     "pytest-cov>=6.0.0",
