@@ -1551,3 +1551,149 @@ button:disabled {
 .param-tooltip-wrap:hover .param-tooltip-body {
   opacity: 1;
 }
+
+/* ── Onboarding ──────────────────────────────────────── */
+
+.onboard-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboard-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 52px 48px 32px;
+  max-width: 520px;
+  width: 92%;
+  text-align: center;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.onboard-step-icon {
+  color: #dc2626;
+  margin-bottom: 20px;
+}
+
+.onboard-step-icon svg {
+  width: 48px;
+  height: 48px;
+}
+
+.onboard-step-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.onboard-step-body {
+  font-size: 0.95rem;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 28px;
+}
+
+.onboard-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.onboard-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: background 150ms;
+}
+
+.onboard-dot.active {
+  background: #dc2626;
+  width: 24px;
+  border-radius: 4px;
+}
+
+.onboard-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
+.onboard-actions .primary-action.compact,
+.onboard-actions .secondary-action.compact {
+  padding: 8px 18px;
+  font-size: 0.85rem;
+}
+
+.onboard-actions .primary-action.compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.onboard-skip {
+  margin-top: 16px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.onboard-skip:hover {
+  color: #64748b;
+}
+
+/* ── Preset Chips ────────────────────────────────────── */
+
+.preset-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms, color 150ms;
+  white-space: nowrap;
+}
+
+.preset-chip:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.preset-chip.recommended {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+
+.preset-chip.recommended:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
