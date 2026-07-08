@@ -157,8 +157,7 @@ class FlockingEngine:
             integrator=Integrator[config.integrator],
             freq=config.freq,
             state_freq=config.state_freq,
-            device="gpu",
-            # device=cf_device,
+            device=cf_device,
         )
 
         self.sim.reset()
