@@ -136,6 +136,41 @@ def get_device_info(platform: str) -> dict[str, str | int]:
     return info
 
 
+def _build_hold_rotate_trajectory(
+    hold_targets: NDArray,
+    spawn: NDArray,
+    t_form: float,
+    omega: float,
+    duration: float,
+    control_freq: float,
+    cx: float,
+    cy: float,
+) -> NDArray:
+    n = hold_targets.shape[0]
+    n_steps = int(duration * control_freq)
+    cx_arr = np.array([cx, cy, 0.0], dtype=np.float64)
+    spawn = spawn.astype(np.float64)
+    hold = hold_targets.astype(np.float64)
+    traj = np.empty((n, n_steps, 3), dtype=np.float64)
+    for step in range(n_steps):
+        t = step / control_freq
+        if t < t_form and t_form > 0:
+            alpha = 0.5 - 0.5 * np.cos(np.pi * (t / t_form))
+            target = spawn * (1.0 - alpha) + hold * alpha
+        else:
+            tt = max(0.0, t - t_form)
+            angle = omega * tt
+            cos_a = np.cos(angle)
+            sin_a = np.sin(angle)
+            rel = hold - cx_arr
+            target = np.empty_like(hold)
+            target[:, 0] = cx + rel[:, 0] * cos_a - rel[:, 1] * sin_a
+            target[:, 1] = cy + rel[:, 0] * sin_a + rel[:, 1] * cos_a
+            target[:, 2] = hold[:, 2]
+        traj[:, step, :] = target
+    return traj
+
+
 class FlockingEngine:
     """Wraps crazyflow.Sim with a Boids flocking controller.
 
@@ -268,9 +303,24 @@ class FlockingEngine:
                 }
             else:
                 params = {}
-            primitive_traj = build_trajectory(
-                self.config.motion_primitive, init_pos[0], **common, params=params
-            )
+            if self.hold_targets is not None:
+                from backend.engine.primitives import _bounds_centroid
+
+                cx, cy, _ = _bounds_centroid(self.bounds)
+                primitive_traj = _build_hold_rotate_trajectory(
+                    self.hold_targets,
+                    init_pos[0],
+                    t_form,
+                    omega,
+                    duration,
+                    self.sim.control_freq,
+                    cx,
+                    cy,
+                )
+            else:
+                primitive_traj = build_trajectory(
+                    self.config.motion_primitive, init_pos[0], **common, params=params
+                )
             primitive_vel = trajectory_velocities(primitive_traj, self.sim.control_freq)
 
         states = np.empty((n_control_steps, self.sim.n_drones, 13), dtype=np.float64)
