@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from backend.flocking.obj_processor import sample_obj_surface
+from backend.engine.shapes import sample_obj_surface
 
 POINTS = sample_obj_surface("male.obj", 100)
 

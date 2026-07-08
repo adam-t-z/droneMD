@@ -8,7 +8,7 @@ import drone_models
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-from backend.flocking.router import router as flocking_router
+from backend.routes.router import router as flocking_router
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB_DIST_DIR = ROOT / "web" / "dist"

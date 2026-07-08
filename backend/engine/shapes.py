@@ -1,4 +1,4 @@
-"""OBJ 3D mesh surface sampling for drone formation positions."""
+"""3D shape / mesh surface sampling for drone formation positions."""
 
 from __future__ import annotations
 

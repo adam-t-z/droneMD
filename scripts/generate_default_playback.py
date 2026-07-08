@@ -4,8 +4,8 @@ import json
 import os
 import numpy as np
 
-from backend.flocking.engine import FlockingEngine
-from backend.flocking.schemas import SwarmConfig
+from backend.engine.engine import FlockingEngine
+from backend.routes.schemas import SwarmConfig
 from backend.utils import generate_default_colors
 
 OUTPUT = "web/public/data/default-playback.json"

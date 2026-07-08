@@ -12,9 +12,8 @@ import numpy as np
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
-from backend.flocking.engine import FlockingEngine
-from backend.flocking.obj_processor import sample_obj_surface
-from backend.flocking.schemas import SwarmConfig
+from backend.engine import FlockingEngine, sample_obj_surface
+from backend.routes.schemas import SwarmConfig
 from backend.utils import generate_default_colors
 
 logger = logging.getLogger(__name__)
