@@ -13,12 +13,15 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
 from backend.engine import FlockingEngine, sample_obj_surface
-from backend.routes.schemas import SwarmConfig
+from backend.routes.schemas import BenchmarkHistory, GpuMetrics, SwarmConfig
 from backend.utils import generate_default_colors
+from backend.utils.gpu_info import get_device_description, get_gpu_count, get_platform_name
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/swarm", tags=["swarm"])
+
+_benchmark_history: list[GpuMetrics] = []
 
 
 def _normalize_swarm_playback(sim_data: dict, config: SwarmConfig) -> dict:
@@ -49,6 +52,7 @@ def _normalize_swarm_playback(sim_data: dict, config: SwarmConfig) -> dict:
         "deviceInfo": sim_data.get(
             "device_info", {"platform": "cpu", "device_name": "CPU", "device_kind": "cpu"}
         ),
+        "gpuMetrics": sim_data.get("gpu_metrics"),
     }
     if overlays:
         result["overlays"] = overlays
@@ -60,6 +64,7 @@ def simulate(config: SwarmConfig) -> dict:
     try:
         engine = FlockingEngine(config)
         sim_data = engine.run(config.duration)
+        _store_benchmark(sim_data)
         playback = _normalize_swarm_playback(sim_data, config)
         return playback
     except Exception as exc:
@@ -75,6 +80,7 @@ def simulate_stream(config: SwarmConfig) -> StreamingResponse:
             for phase, percent in engine.run_stream(config.duration):
                 yield json.dumps({"type": "progress", "phase": phase, "percent": percent}) + "\n"
             sim_data = engine._last_result
+            _store_benchmark(sim_data)
             playback = _normalize_swarm_playback(sim_data, config)
             yield json.dumps({"type": "result", "data": playback}) + "\n"
         except Exception as exc:
@@ -104,3 +110,38 @@ def upload_obj(
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     return {"points": points.tolist(), "n_drones": n_drones}
+
+
+@router.get("/benchmark")
+def get_benchmark() -> BenchmarkHistory:
+    """Return historical GPU benchmark data for the dashboard."""
+    return BenchmarkHistory(
+        platform=get_platform_name().lower(),
+        device_name=get_device_description(get_platform_name()),
+        device_count=get_gpu_count(),
+        measurements=_benchmark_history[-20:],
+    )
+
+
+def _store_benchmark(sim_data: dict) -> None:
+    """Persist a completed run's GPU metrics into the history."""
+    gm = sim_data.get("gpu_metrics")
+    if not gm:
+        return
+    try:
+        _benchmark_history.append(
+            GpuMetrics(
+                platform=gm.get("platform", "cpu"),
+                device_name=gm.get("device_name", "Unknown"),
+                device_count=gm.get("device_count", 0),
+                sim_time_seconds=gm.get("sim_time_seconds", 0.0),
+                num_drones=gm.get("num_drones", 0),
+                duration_seconds=gm.get("duration_seconds", 0.0),
+                physics_freq_hz=gm.get("physics_freq_hz", 500),
+                control_freq_hz=gm.get("control_freq_hz", 100),
+                timesteps_per_second=gm.get("timesteps_per_second", 0.0),
+                device_memory_mb=gm.get("device_memory_mb"),
+            )
+        )
+    except Exception:
+        logger.debug("Failed to store benchmark history", exc_info=True)

@@ -29,3 +29,27 @@ class SwarmConfig(BaseModel):
     motion_primitive: str = Field(default="none", pattern="^(none|circle|star|cone)$")
     primitive_params: dict = Field(default_factory=dict)
     obj_points: list[list[float]] | None = Field(default=None)
+
+
+class GpuMetrics(BaseModel):
+    """Per-run GPU / compute benchmark data."""
+
+    platform: str = Field(default="cpu")
+    device_name: str = Field(default="CPU")
+    device_count: int = Field(default=0)
+    sim_time_seconds: float = Field(default=0.0)
+    num_drones: int = Field(default=0)
+    duration_seconds: float = Field(default=0.0)
+    physics_freq_hz: int = Field(default=500)
+    control_freq_hz: int = Field(default=100)
+    timesteps_per_second: float = Field(default=0.0)
+    device_memory_mb: int | None = Field(default=None)
+
+
+class BenchmarkHistory(BaseModel):
+    """Historical benchmark runs for the dashboard."""
+
+    platform: str = Field(default="cpu")
+    device_name: str = Field(default="Unknown")
+    device_count: int = Field(default=0)
+    measurements: list[GpuMetrics] = Field(default_factory=list)
