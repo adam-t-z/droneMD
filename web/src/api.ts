@@ -1,4 +1,4 @@
-import type { Playback, SimPhase, SwarmConfig } from "./types";
+import type { BenchmarkHistory, Playback, SimPhase, SwarmConfig } from "./types";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -111,4 +111,8 @@ export async function uploadObjFile(
     throw new Error(detail);
   }
   return await resp.json() as { points: number[][]; n_drones: number };
+}
+
+export function fetchGpuBenchmark(): Promise<BenchmarkHistory> {
+  return request<BenchmarkHistory>("/api/swarm/benchmark");
 }
