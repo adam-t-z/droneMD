@@ -1,7 +1,9 @@
-import { Atom, ChevronDown, ChevronRight, Download, FlaskConical, Loader2, Maximize2, Minimize2, Play, RotateCcw } from "lucide-react";
+import { Atom, BookOpen, ChevronDown, ChevronRight, Download, FlaskConical, Loader2, Maximize2, Minimize2, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchDefaultObjPoints, loadDefaultPlayback, simulateSwarmStream, uploadObjFile } from "./api";
 import { downloadCSV, downloadJSONWaypoints, downloadROS, downloadReportPdf, downloadReportTxt } from "./export";
+import { DEMO_PRESETS, isOnboardingDone, markOnboardingDone, Onboarding } from "./Onboarding";
+import type { DemoPreset } from "./Onboarding";
 import { Player } from "./Player";
 import { ReportPanel } from "./ReportPanel";
 import type { Playback, PlaybackOverlays, SimPhase, SwarmConfig } from "./types";
@@ -24,8 +26,8 @@ const DEFAULT_CONFIG: SwarmConfig = {
   freq: 500,
   state_freq: 100,
   height: 1.0,
-  motion_primitive: "none",
-  primitive_params: {},
+  motion_primitive: "cone",
+  primitive_params: { delta_height: 0.3, spacing: 0.5, t_form: 3.0 },
   obj_points: null,
 };
 
@@ -235,6 +237,7 @@ export function SwarmLab() {
   const [toast, setToast] = useState<string | null>(null);
   const [formationType, setFormationType] = useState<"none" | "human" | "upload">("none");
   const [objUploading, setObjUploading] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingDone());
   const previewRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -330,6 +333,22 @@ export function SwarmLab() {
     setOverlays(null);
     setSimPhase(null);
     setFormationType("none");
+    setActivePresetId(null);
+  }, []);
+
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
+
+  const loadPreset = useCallback((preset: DemoPreset) => {
+    const merged = { ...DEFAULT_CONFIG, ...preset.config };
+    setConfig(merged);
+    setActivePresetId(preset.id);
+    setError(null);
+    setPlayback(null);
+    setOverlays(null);
+    setSimPhase(null);
+    if (preset.config.motion_primitive) {
+      setFormationType("none");
+    }
   }, []);
 
   const togglePreviewFullscreen = useCallback(async () => {
@@ -370,6 +389,14 @@ export function SwarmLab() {
 
   return (
     <main className="app-shell swarm-lab">
+      {showOnboarding && (
+        <Onboarding
+          onDismiss={() => {
+            markOnboardingDone();
+            setShowOnboarding(false);
+          }}
+        />
+      )}
       <section className="workspace">
         {toast && <div className="report-toast">{toast}</div>}
         <header className="topbar">
@@ -395,6 +422,27 @@ export function SwarmLab() {
 
         <div className="swarm-layout">
           <div className="swarm-controls">
+            <div className="preset-strip">
+              {DEMO_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  className={`preset-chip${activePresetId === preset.id ? " recommended" : ""}`}
+                  onClick={() => loadPreset(preset)}
+                  title={preset.description}
+                >
+                  {preset.icon}
+                  {preset.label}
+                </button>
+              ))}
+              <button
+                className="preset-chip"
+                onClick={() => { markOnboardingDone(); setShowOnboarding(true); }}
+                title="Replay the tour"
+              >
+                <BookOpen size={14} />
+                Tour
+              </button>
+            </div>
             <div className="swarm-section">
               <div className="section-title">
                 <Atom size={18} />

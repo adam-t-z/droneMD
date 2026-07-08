@@ -265,8 +265,17 @@ textarea:focus {
   right: 0;
   z-index: 10;
   padding: 12px 16px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.92) 60%, rgba(255,255,255,0) 100%);
+  background: #1a1d23;
+  border-bottom: 1px solid #2d333b;
   border-radius: 12px 12px 0 0;
+}
+
+.player-shell .player-toolbar h2 {
+  color: #f1f5f9;
+}
+
+.player-shell .player-toolbar .eyebrow {
+  color: #94a3b8;
 }
 
 .player-shell .playback-controls {
@@ -276,8 +285,22 @@ textarea:focus {
   right: 0;
   z-index: 10;
   padding: 12px 16px;
-  background: linear-gradient(0deg, rgba(255,255,255,0.92) 60%, rgba(255,255,255,0) 100%);
+  background: #1a1d23;
+  border-top: 1px solid #2d333b;
   border-radius: 0 0 12px 12px;
+}
+
+.player-shell .secondary-action,
+.player-shell .icon-button {
+  border-color: #3b4252;
+  color: #cbd5e1;
+  background: #272b33;
+}
+
+.player-shell .secondary-action:hover,
+.player-shell .icon-button:hover {
+  background: #323842;
+  border-color: #4a5568;
 }
 
 .player-shell:hover .player-toolbar,
@@ -564,7 +587,7 @@ button:disabled {
 
 .player-embedded .player-canvas {
   min-height: 200px;
-  border-radius: 0;
+  border-radius: 12px;
 }
 
 .choreography-embed {
@@ -577,8 +600,8 @@ button:disabled {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  border-radius: 0;
-  background: #e2e8f0;
+  border-radius: 12px;
+  background: #1a1d23;
 }
 
 .player-canvas canvas {
@@ -586,6 +609,7 @@ button:disabled {
   width: 100%;
   height: 100%;
   image-rendering: auto;
+  border-radius: 12px;
 }
 
 .timeline {
@@ -595,7 +619,7 @@ button:disabled {
 
 .timecode {
   min-width: 110px;
-  color: #2c323b;
+  color: #d6e4dd;
   font-variant-numeric: tabular-nums;
   font-size: 0.82rem;
 }
@@ -776,11 +800,11 @@ button:disabled {
   justify-content: space-between;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #2d333b;
+  background: #1a1d23;
   flex-shrink: 0;
-  color: #334155;
+  color: #cbd5e1;
+  border-radius: 12px 12px 0 0;
   opacity: 0;
   transition: opacity 0.25s ease;
 }
@@ -791,18 +815,18 @@ button:disabled {
 
 .swarm-preview-toolbar .eyebrow {
   margin: 0;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .swarm-preview-toolbar .secondary-action {
-  border-color: #e2e8f0;
-  color: #475569;
-  background: rgba(255, 255, 255, 0.7);
+  border-color: #3b4252;
+  color: #cbd5e1;
+  background: #272b33;
 }
 
 .swarm-preview-toolbar .secondary-action:hover {
-  background: #ffffff;
-  border-color: #cbd5e1;
+  background: #323842;
+  border-color: #4a5568;
 }
 
 .swarm-preview:fullscreen,
@@ -816,13 +840,13 @@ button:disabled {
 
 .swarm-preview:fullscreen .swarm-preview-toolbar,
 .swarm-preview:-webkit-full-screen .swarm-preview-toolbar {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: rgba(15, 23, 42, 0.08);
+  background: #1a1d23;
+  border-color: #2d333b;
 }
 
 .swarm-preview:fullscreen .swarm-preview-toolbar .eyebrow,
 .swarm-preview:-webkit-full-screen .swarm-preview-toolbar .eyebrow {
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .swarm-placeholder {
@@ -1550,4 +1574,150 @@ button:disabled {
 
 .param-tooltip-wrap:hover .param-tooltip-body {
   opacity: 1;
+}
+
+/* ── Onboarding ──────────────────────────────────────── */
+
+.onboard-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboard-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 52px 48px 32px;
+  max-width: 520px;
+  width: 92%;
+  text-align: center;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.onboard-step-icon {
+  color: #2563eb;
+  margin-bottom: 20px;
+}
+
+.onboard-step-icon svg {
+  width: 48px;
+  height: 48px;
+}
+
+.onboard-step-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.onboard-step-body {
+  font-size: 0.95rem;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 28px;
+}
+
+.onboard-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.onboard-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: background 150ms;
+}
+
+.onboard-dot.active {
+  background: #2563eb;
+  width: 24px;
+  border-radius: 4px;
+}
+
+.onboard-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+}
+
+.onboard-actions .primary-action.compact,
+.onboard-actions .secondary-action.compact {
+  padding: 8px 18px;
+  font-size: 0.85rem;
+}
+
+.onboard-actions .primary-action.compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.onboard-skip {
+  margin-top: 16px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.onboard-skip:hover {
+  color: #64748b;
+}
+
+/* ── Preset Chips ────────────────────────────────────── */
+
+.preset-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms, color 150ms;
+  white-space: nowrap;
+}
+
+.preset-chip:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.preset-chip.recommended {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+
+.preset-chip.recommended:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }
