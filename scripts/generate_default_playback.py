@@ -11,15 +11,24 @@ from backend.utils import generate_default_colors
 OUTPUT = "web/public/data/default-playback.json"
 
 config = SwarmConfig(
-    n_drones=15,
+    n_drones=25,
     duration=20.0,
+    separation_weight=1.5,
+    alignment_weight=1.0,
+    cohesion_weight=1.0,
+    perception_radius=3.0,
+    max_speed=2.0,
+    max_force=0.5,
+    boundary_mode="wrap",
+    bounds=[-2.0, 2.0, -2.0, 2.0],
     device="cpu",
     physics="first_principles",
     integrator="euler",
     freq=500,
     state_freq=50,
     height=1.0,
-    motion_primitive="none",
+    motion_primitive="cone",
+    primitive_params={"delta_height": 0.3, "spacing": 0.5, "t_form": 3.0},
 )
 
 print(f"Running default simulation: {config.n_drones} drones, {config.duration}s...")
