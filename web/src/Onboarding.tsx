@@ -1,4 +1,4 @@
-import { ArrowRight, Atom, BarChart3, Cpu, Rocket, Zap } from "lucide-react";
+import { ArrowRight, Atom, BarChart3, Pyramid, Rocket, Star, Triangle, Zap } from "lucide-react";
 import { useState } from "react";
 import type { SwarmConfig } from "./types";
 
@@ -36,63 +36,13 @@ export type DemoPreset = {
   autoStart?: boolean;
 };
 
-const FLOCKING_PRESET: DemoPreset = {
-  id: "flocking",
-  label: "Classic Flocking",
-  description: "Standard boids-like behavior at moderate scale — recommended starting point",
-  icon: <Zap size={16} />,
+const CONE_PRESET: DemoPreset = {
+  id: "cone",
+  label: "Layered Cone",
+  description: "25 drones forming a multi-layer rotating cone — showcases 3D formations",
+  icon: <Pyramid size={16} />,
   config: {
-    n_drones: 30,
-    duration: 20,
-    separation_weight: 1.5,
-    alignment_weight: 1.0,
-    cohesion_weight: 1.0,
-    perception_radius: 3.0,
-    max_speed: 2.0,
-    max_force: 0.5,
-    boundary_mode: "wrap",
-    bounds: [-2.0, 2.0, -2.0, 2.0],
-    device: "rocm",
-    physics: "first_principles",
-    integrator: "euler",
-    motion_primitive: "none",
-    primitive_params: {},
-    obj_points: null,
-  },
-};
-
-const DENSE_PRESET: DemoPreset = {
-  id: "dense",
-  label: "Dense Swarm",
-  description: "100 drones squeezed into a 1m box — stress test for collision avoidance",
-  icon: <Atom size={16} />,
-  config: {
-    n_drones: 100,
-    duration: 15,
-    separation_weight: 3.0,
-    alignment_weight: 1.5,
-    cohesion_weight: 2.0,
-    perception_radius: 2.0,
-    max_speed: 1.5,
-    max_force: 1.0,
-    boundary_mode: "bounce",
-    bounds: [-0.5, 0.5, -0.5, 0.5],
-    device: "cpu",
-    physics: "first_principles",
-    integrator: "rk4",
-    motion_primitive: "none",
-    primitive_params: {},
-    obj_points: null,
-  },
-};
-
-const CIRCLE_PRESET: DemoPreset = {
-  id: "circle",
-  label: "Rotating Circle",
-  description: "40 drones holding a spinning ring — showcases motion primitives",
-  icon: <Cpu size={16} />,
-  config: {
-    n_drones: 40,
+    n_drones: 25,
     duration: 20,
     separation_weight: 1.0,
     alignment_weight: 0.5,
@@ -105,42 +55,40 @@ const CIRCLE_PRESET: DemoPreset = {
     device: "cpu",
     physics: "first_principles",
     integrator: "euler",
-    motion_primitive: "circle",
-    primitive_params: { radius: 1.5, rotation: 0.3 },
+    motion_primitive: "cone",
+    primitive_params: { delta_height: 0.3, spacing: 0.5, t_form: 3.0, omega: 0.3 },
     obj_points: null,
   },
 };
 
-const SPARSE_PRESET: DemoPreset = {
-  id: "sparse",
-  label: "Wide Patrol",
-  description: "20 drones surveying a larger 5m area with low cohesion",
-  icon: <Rocket size={16} />,
+const STAR_PRESET: DemoPreset = {
+  id: "star",
+  label: "Rotating Star",
+  description: "30 drones forming a two-spoke rotating star — showcases multi-ring formations",
+  icon: <Star size={16} />,
   config: {
-    n_drones: 20,
-    duration: 30,
+    n_drones: 30,
+    duration: 20,
     separation_weight: 1.0,
-    alignment_weight: 1.0,
+    alignment_weight: 0.5,
     cohesion_weight: 0.5,
-    perception_radius: 4.0,
-    max_speed: 3.0,
-    max_force: 0.8,
-    boundary_mode: "bounce",
-    bounds: [-2.5, 2.5, -2.5, 2.5],
+    perception_radius: 3.0,
+    max_speed: 2.0,
+    max_force: 0.5,
+    boundary_mode: "wrap",
+    bounds: [-2.0, 2.0, -2.0, 2.0],
     device: "cpu",
     physics: "first_principles",
-    integrator: "rk4",
-    motion_primitive: "none",
-    primitive_params: {},
+    integrator: "euler",
+    motion_primitive: "star",
+    primitive_params: { radius: 1.2, delta_radius: 0.4, t_form: 3.0, omega: 0.3 },
     obj_points: null,
   },
 };
 
 export const DEMO_PRESETS: DemoPreset[] = [
-  FLOCKING_PRESET,
-  DENSE_PRESET,
-  CIRCLE_PRESET,
-  SPARSE_PRESET,
+  CONE_PRESET,
+  STAR_PRESET,
 ];
 
 export function isOnboardingDone(): boolean {

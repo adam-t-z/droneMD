@@ -26,8 +26,8 @@ const DEFAULT_CONFIG: SwarmConfig = {
   freq: 500,
   state_freq: 100,
   height: 1.0,
-  motion_primitive: "none",
-  primitive_params: {},
+  motion_primitive: "cone",
+  primitive_params: { delta_height: 0.3, spacing: 0.5, t_form: 3.0 },
   obj_points: null,
 };
 

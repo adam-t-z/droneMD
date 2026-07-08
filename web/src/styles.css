@@ -1601,7 +1601,7 @@ button:disabled {
 }
 
 .onboard-step-icon {
-  color: #dc2626;
+  color: #2563eb;
   margin-bottom: 20px;
 }
 
@@ -1641,7 +1641,7 @@ button:disabled {
 }
 
 .onboard-dot.active {
-  background: #dc2626;
+  background: #2563eb;
   width: 24px;
   border-radius: 4px;
 }
