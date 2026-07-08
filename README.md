@@ -4,8 +4,6 @@ GPU-accelerated drone swarm simulation platform with physics-accurate Boids floc
 
 Built for the **AMD Developer Hackathon: Stage II** (lablab.ai).
 
-Track: Scalable Simulation.
-
 <p align="center">
   <img src="assets/drone-sim-trial.gif" alt="DroneMD swarm simulation" width="800">
 </p>
