@@ -77,7 +77,7 @@ const PRIMITIVE_TYPE_DESC = "None: standard flocking behavior\nCircle: drones fo
 
 const BOUNDARY_MODE_DESC = "How drones behave at the boundary.\nWrap: teleport to opposite side\nBounce: reflect off the wall\nHard: stop at the wall";
 
-const DEVICE_DESC = "CPU: runs on processor (slower, works everywhere)\nGPU: runs on AMD GPU (faster, experimental)";
+const DEVICE_DESC = "CPU: runs on processor (works everywhere)\nGPU (CUDA): NVIDIA GPU via CUDA\nGPU (ROCm): AMD GPU via ROCm";
 
 const PHYSICS_DESC = "First Principles: basic Newtonian physics\nSO(3) RPY: full 3D rotational dynamics\nSO(3) RPY Rotor: adds rotor thrust model\nSO(3) RPY Rotor Drag: adds aerodynamic drag";
 
@@ -232,6 +232,7 @@ export function SwarmLab() {
   const [showEnvironment, setShowEnvironment] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [formationType, setFormationType] = useState<"none" | "human" | "upload">("none");
   const [objUploading, setObjUploading] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -312,6 +313,8 @@ export function SwarmLab() {
       const { overlays: ov, ...rest } = result;
       setPlayback(rest);
       setOverlays(ov ?? null);
+      setToast("Report ready, scroll down to see");
+      setTimeout(() => setToast(null), 5000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Simulation failed");
     } finally {
@@ -368,6 +371,7 @@ export function SwarmLab() {
   return (
     <main className="app-shell swarm-lab">
       <section className="workspace">
+        {toast && <div className="report-toast">{toast}</div>}
         <header className="topbar">
           <div>
             <h1>DroneMD</h1>
@@ -597,7 +601,8 @@ export function SwarmLab() {
                     value={config.device}
                     options={[
                       { value: "cpu", label: "CPU" },
-                      { value: "gpu", label: "GPU" },
+                      { value: "cuda", label: "GPU (CUDA / NVIDIA)" },
+                      { value: "rocm", label: "GPU (ROCm / AMD)" },
                     ]}
                     onChange={(v) => updateConfig("device", v as SwarmConfig["device"])}
                   />

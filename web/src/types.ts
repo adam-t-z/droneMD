@@ -10,7 +10,7 @@ export type SwarmConfig = {
   boundary_mode: "wrap" | "bounce" | "hard";
   bounds: [number, number, number, number];
   obstacles: { x: number; y: number; radius: number }[];
-  device: "cpu" | "gpu";
+  device: "cpu" | "cuda" | "rocm" | "gpu";
   physics: "first_principles" | "so_rpy" | "so_rpy_rotor" | "so_rpy_rotor_drag";
   integrator: "euler" | "rk4" | "symplectic_euler";
   freq: number;
@@ -19,6 +19,32 @@ export type SwarmConfig = {
   motion_primitive: "none" | "circle" | "star" | "cone";
   primitive_params: Record<string, unknown>;
   obj_points: number[][] | null;
+};
+
+export type DeviceInfo = {
+  platform: string;
+  device_name: string;
+  device_kind: string;
+};
+
+export type GpuMetrics = {
+  platform: string;
+  device_name: string;
+  device_count: number;
+  sim_time_seconds: number;
+  num_drones: number;
+  duration_seconds: number;
+  physics_freq_hz: number;
+  control_freq_hz: number;
+  timesteps_per_second: number;
+  device_memory_mb: number | null;
+};
+
+export type BenchmarkHistory = {
+  platform: string;
+  device_name: string;
+  device_count: number;
+  measurements: GpuMetrics[];
 };
 
 export type PlaybackOverlays = {
@@ -46,6 +72,9 @@ export type Playback = {
   colors: number[][];
   sampleRate: number;
   overlays?: PlaybackOverlays;
+  gpuPlatform?: string;
+  deviceInfo?: DeviceInfo;
+  gpuMetrics?: GpuMetrics;
 };
 
 export type SimPhase = {
