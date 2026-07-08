@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import TYPE_CHECKING
 
 import jax
@@ -83,18 +84,41 @@ def resolve_device(requested: str) -> tuple[str, str]:
     return "cpu", "cpu"
 
 
-def get_device_info(platform: str) -> dict[str, str]:
+def get_device_info(platform: str) -> dict[str, str | int]:
     """Get descriptive information about the compute device in use.
 
-    Returns a dict with ``"platform"``, ``"device_name"``, and
-    ``"device_kind"`` keys suitable for display and benchmarking.
+    Returns a dict with ``"platform"``, ``"device_name"``,
+    ``"device_kind"``, and ``"device_count"`` keys suitable for
+    display and benchmarking.
     """
-    info: dict[str, str] = {"platform": platform, "device_name": "Unknown", "device_kind": platform}
+    info: dict[str, str | int] = {
+        "platform": platform,
+        "device_name": "Unknown",
+        "device_kind": platform,
+        "device_count": 0,
+    }
 
     if platform == "cpu":
         info["device_name"] = "CPU"
         info["device_kind"] = "cpu"
+        info["device_count"] = 0
         return info
+
+    try:
+        devices = jax.devices("gpu")
+        if not devices:
+            return info
+        info["device_count"] = len(devices)
+        d = devices[0]
+        name = getattr(d, "device_kind", "") or getattr(d, "device_vendor", "") or ""
+        if not name:
+            name = f"{platform.upper()} GPU"
+        info["device_name"] = name
+        info["device_kind"] = name
+    except RuntimeError:
+        pass
+
+    return info
 
     try:
         devices = jax.devices("gpu")
@@ -258,6 +282,8 @@ class FlockingEngine:
         sim_range = sim_end_pct - sim_start_pct
         report_interval = max(1, n_control_steps // 10)
 
+        sim_wall_start = time.perf_counter()
+
         for step in range(n_control_steps):
             if step % report_interval == 0:
                 pct = sim_start_pct + (step / n_control_steps) * sim_range
@@ -296,7 +322,36 @@ class FlockingEngine:
             states[step] = state_vec
             timestamps[step] = step / self.sim.control_freq
 
+        sim_wall_end = time.perf_counter()
+        sim_wall_elapsed = sim_wall_end - sim_wall_start
+
         yield ("Running flocking simulation", sim_end_pct)
+
+        from backend.utils.gpu_info import query_process_memory_mb
+
+        gpu_mem = query_process_memory_mb()
+        device_info = get_device_info(self.gpu_platform)
+
+        dc_raw = device_info.get("device_count", 0)
+        try:
+            device_count = int(dc_raw) if self.gpu_platform != "cpu" else 0
+        except (TypeError, ValueError):
+            device_count = 0
+
+        tps = round(n_control_steps / sim_wall_elapsed, 2) if sim_wall_elapsed > 0 else 0.0
+
+        self._gpu_metrics = {
+            "platform": self.gpu_platform,
+            "device_name": str(device_info.get("device_name", "Unknown")),
+            "device_count": device_count,
+            "sim_time_seconds": round(sim_wall_elapsed, 4),
+            "num_drones": self.sim.n_drones,
+            "duration_seconds": float(duration),
+            "physics_freq_hz": int(self.sim.freq),
+            "control_freq_hz": int(self.sim.control_freq),
+            "timesteps_per_second": tps,
+            "device_memory_mb": gpu_mem,
+        }
 
         self.sim.close()
 
@@ -323,5 +378,6 @@ class FlockingEngine:
             "overlays": {"collisions_per_frame": collisions_per_frame, "speeds": speeds.tolist()},
             "gpu_platform": self.gpu_platform,
             "device_info": get_device_info(self.gpu_platform),
+            "gpu_metrics": self._gpu_metrics,
         }
         yield ("Simulation complete", 100)
