@@ -1,4 +1,4 @@
-import { Pause, Play, RotateCcw, X } from "lucide-react";
+import { Maximize2, Minimize2, Pause, Play, RotateCcw, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -185,10 +185,10 @@ function makeFlightArea(playback: Playback): THREE.Group {
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(width, depth),
     new THREE.MeshStandardMaterial({
-      color: 0xffffff,
+      color: 0x2d333b,
       roughness: 0.9,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.4,
       side: THREE.DoubleSide
     })
   );
@@ -214,7 +214,7 @@ function makeFlightArea(playback: Playback): THREE.Group {
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(lineVertices, 3));
-  group.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.75 })));
+  group.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0x71ac90, transparent: true, opacity: 0.35 })));
   return group;
 }
 
@@ -225,6 +225,7 @@ export function Player({ playback, overlays, onClose, autoPlay = false, embedded
   const wallClockRef = useRef(0);
   const playingRef = useRef(false);
   const [playhead, setPlayhead] = useState(0);
+  const [fullscreen, setFullscreen] = useState(false);
   const [playing, setPlaying] = useState(false);
   useEffect(() => { playingRef.current = playing; }, [playing]);
   const duration = useMemo(
@@ -239,7 +240,7 @@ export function Player({ playback, overlays, onClose, autoPlay = false, embedded
     }
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xe2e8f0);
+    scene.background = new THREE.Color(0x1a1d23);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
@@ -252,8 +253,8 @@ export function Player({ playback, overlays, onClose, autoPlay = false, embedded
     controls.target.set(0, 0, 0.9);
     controls.enableDamping = true;
 
-    scene.add(new THREE.HemisphereLight(0xdbeee7, 0x23322d, 1.4));
-    const key = new THREE.DirectionalLight(0xffffff, 2.2);
+    scene.add(new THREE.HemisphereLight(0x2a3a4a, 0x0d1520, 0.8));
+    const key = new THREE.DirectionalLight(0xffffff, 1.6);
     key.position.set(2.5, -2, 4);
     scene.add(key);
 
@@ -498,6 +499,22 @@ export function Player({ playback, overlays, onClose, autoPlay = false, embedded
     setPlaying(false);
   };
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      mountRef.current?.requestFullscreen();
+      setFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setFullscreen(false);
+    }
+  };
+
+  useEffect(() => {
+    const onFsChange = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
   return (
     <section className={`player-shell${embedded ? " player-embedded" : ""}`}>
       {!embedded && (
@@ -506,9 +523,14 @@ export function Player({ playback, overlays, onClose, autoPlay = false, embedded
             <p className="eyebrow">Browser playback</p>
             <h2>DroneMD</h2>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Close player">
-            <X size={18} />
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="icon-button" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
+              {fullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
+            <button className="icon-button" onClick={onClose} aria-label="Close player">
+              <X size={18} />
+            </button>
+          </div>
         </div>
       )}
       <div className="player-canvas" ref={mountRef} />

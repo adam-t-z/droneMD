@@ -265,8 +265,17 @@ textarea:focus {
   right: 0;
   z-index: 10;
   padding: 12px 16px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.92) 60%, rgba(255,255,255,0) 100%);
+  background: #1a1d23;
+  border-bottom: 1px solid #2d333b;
   border-radius: 12px 12px 0 0;
+}
+
+.player-shell .player-toolbar h2 {
+  color: #f1f5f9;
+}
+
+.player-shell .player-toolbar .eyebrow {
+  color: #94a3b8;
 }
 
 .player-shell .playback-controls {
@@ -276,8 +285,22 @@ textarea:focus {
   right: 0;
   z-index: 10;
   padding: 12px 16px;
-  background: linear-gradient(0deg, rgba(255,255,255,0.92) 60%, rgba(255,255,255,0) 100%);
+  background: #1a1d23;
+  border-top: 1px solid #2d333b;
   border-radius: 0 0 12px 12px;
+}
+
+.player-shell .secondary-action,
+.player-shell .icon-button {
+  border-color: #3b4252;
+  color: #cbd5e1;
+  background: #272b33;
+}
+
+.player-shell .secondary-action:hover,
+.player-shell .icon-button:hover {
+  background: #323842;
+  border-color: #4a5568;
 }
 
 .player-shell:hover .player-toolbar,
@@ -564,7 +587,7 @@ button:disabled {
 
 .player-embedded .player-canvas {
   min-height: 200px;
-  border-radius: 0;
+  border-radius: 12px;
 }
 
 .choreography-embed {
@@ -577,8 +600,8 @@ button:disabled {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  border-radius: 0;
-  background: #e2e8f0;
+  border-radius: 12px;
+  background: #1a1d23;
 }
 
 .player-canvas canvas {
@@ -586,6 +609,7 @@ button:disabled {
   width: 100%;
   height: 100%;
   image-rendering: auto;
+  border-radius: 12px;
 }
 
 .timeline {
@@ -595,7 +619,7 @@ button:disabled {
 
 .timecode {
   min-width: 110px;
-  color: #2c323b;
+  color: #d6e4dd;
   font-variant-numeric: tabular-nums;
   font-size: 0.82rem;
 }
@@ -776,11 +800,11 @@ button:disabled {
   justify-content: space-between;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #2d333b;
+  background: #1a1d23;
   flex-shrink: 0;
-  color: #334155;
+  color: #cbd5e1;
+  border-radius: 12px 12px 0 0;
   opacity: 0;
   transition: opacity 0.25s ease;
 }
@@ -791,18 +815,18 @@ button:disabled {
 
 .swarm-preview-toolbar .eyebrow {
   margin: 0;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .swarm-preview-toolbar .secondary-action {
-  border-color: #e2e8f0;
-  color: #475569;
-  background: rgba(255, 255, 255, 0.7);
+  border-color: #3b4252;
+  color: #cbd5e1;
+  background: #272b33;
 }
 
 .swarm-preview-toolbar .secondary-action:hover {
-  background: #ffffff;
-  border-color: #cbd5e1;
+  background: #323842;
+  border-color: #4a5568;
 }
 
 .swarm-preview:fullscreen,
@@ -816,13 +840,13 @@ button:disabled {
 
 .swarm-preview:fullscreen .swarm-preview-toolbar,
 .swarm-preview:-webkit-full-screen .swarm-preview-toolbar {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: rgba(15, 23, 42, 0.08);
+  background: #1a1d23;
+  border-color: #2d333b;
 }
 
 .swarm-preview:fullscreen .swarm-preview-toolbar .eyebrow,
 .swarm-preview:-webkit-full-screen .swarm-preview-toolbar .eyebrow {
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .swarm-placeholder {
