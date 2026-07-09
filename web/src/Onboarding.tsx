@@ -36,6 +36,31 @@ export type DemoPreset = {
   autoStart?: boolean;
 };
 
+const DEFAULT_PRESET: DemoPreset = {
+  id: "default",
+  label: "Default",
+  description: "25 drones in a layered rotating cone — the default demo run",
+  icon: <Pyramid size={16} />,
+  config: {
+    n_drones: 25,
+    duration: 20,
+    separation_weight: 1.0,
+    alignment_weight: 0.5,
+    cohesion_weight: 0.5,
+    perception_radius: 3.0,
+    max_speed: 2.0,
+    max_force: 0.5,
+    boundary_mode: "wrap",
+    bounds: [-2.0, 2.0, -2.0, 2.0],
+    device: "cpu",
+    physics: "first_principles",
+    integrator: "euler",
+    motion_primitive: "cone",
+    primitive_params: { delta_height: 0.3, spacing: 0.5, t_form: 3.0, omega: 0.3 },
+    obj_points: null,
+  },
+};
+
 const CONE_PRESET: DemoPreset = {
   id: "cone",
   label: "Layered Cone",
@@ -87,6 +112,7 @@ const STAR_PRESET: DemoPreset = {
 };
 
 export const DEMO_PRESETS: DemoPreset[] = [
+  DEFAULT_PRESET,
   CONE_PRESET,
   STAR_PRESET,
 ];

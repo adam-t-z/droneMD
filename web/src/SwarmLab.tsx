@@ -8,6 +8,10 @@ import { Player } from "./Player";
 import { ReportTabs } from "./ReportTabs";
 import type { Playback, PlaybackOverlays, SimPhase, SwarmConfig } from "./types";
 
+function configsMatch(a: SwarmConfig, b: SwarmConfig): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 const DEFAULT_CONFIG: SwarmConfig = {
   n_drones: 15,
   duration: 20,
@@ -230,11 +234,15 @@ export function SwarmLab() {
   const [error, setError] = useState<string | null>(null);
   const [playback, setPlayback] = useState<Playback | null>(null);
   const [overlays, setOverlays] = useState<PlaybackOverlays | null>(null);
+  const cachedPlaybackRef = useRef<Playback | null>(null);
+  const cachedOverlaysRef = useRef<PlaybackOverlays | null>(null);
+  const baselineConfigRef = useRef<SwarmConfig>(DEFAULT_CONFIG);
   const [showBehavior, setShowBehavior] = useState(false);
   const [showEnvironment, setShowEnvironment] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [activePresetId, setActivePresetId] = useState<string | null>(null);
   const [formationType, setFormationType] = useState<"none" | "human" | "upload">("none");
   const [objUploading, setObjUploading] = useState(false);
@@ -307,9 +315,26 @@ export function SwarmLab() {
   );
 
   const startSimulation = useCallback(async () => {
+    setError(null);
+
+    if (configsMatch(config, baselineConfigRef.current) && cachedPlaybackRef.current) {
+      setLoading(true);
+      for (let i = 0; i < PHASES.length; i++) {
+        const pct = Math.round(((i + 1) / PHASES.length) * 100);
+        setSimPhase({ phase: PHASES[i].key, percent: pct });
+        await new Promise((r) => setTimeout(r, 200));
+      }
+      setPlayback(cachedPlaybackRef.current);
+      setOverlays(cachedOverlaysRef.current);
+      setShowReport(true);
+      setSidebarCollapsed(true);
+      setLoading(false);
+      setSimPhase(null);
+      return;
+    }
+
     setLoading(true);
     setSimPhase({ phase: "Initializing simulation engine", percent: 0 });
-    setError(null);
     try {
       const result = await simulateSwarmStream(config, (phase) => {
         setSimPhase(phase);
@@ -317,6 +342,7 @@ export function SwarmLab() {
       const { overlays: ov, ...rest } = result;
       setPlayback(rest);
       setOverlays(ov ?? null);
+      setShowReport(true);
       setSidebarCollapsed(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Simulation failed");
@@ -332,6 +358,7 @@ export function SwarmLab() {
     setPlayback(null);
     setOverlays(null);
     setSimPhase(null);
+    setShowReport(false);
     setFormationType("none");
     setActivePresetId(null);
     setSidebarCollapsed(false);
@@ -345,6 +372,7 @@ export function SwarmLab() {
     setPlayback(null);
     setOverlays(null);
     setSimPhase(null);
+    setShowReport(false);
     setSidebarCollapsed(false);
     if (preset.config.motion_primitive) {
       setFormationType("none");
@@ -374,9 +402,14 @@ export function SwarmLab() {
     void loadDefaultPlayback().then((data) => {
       if (data) {
         const { overlays: ov, ...rest } = data;
+        cachedPlaybackRef.current = rest;
+        cachedOverlaysRef.current = ov ?? null;
         setPlayback(rest);
         setOverlays(ov ?? null);
-        setSidebarCollapsed(true);
+        const initialConfig = { ...DEFAULT_CONFIG, ...DEMO_PRESETS[0].config };
+        baselineConfigRef.current = initialConfig;
+        setConfig(initialConfig);
+        setActivePresetId("default");
       }
     });
   }, []);
@@ -429,7 +462,7 @@ export function SwarmLab() {
           </div>
         </header>
 
-        <div className={`swarm-layout${playback ? " has-results" : ""}${playback && sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
+        <div className={`swarm-layout${showReport ? " has-results" : ""}${showReport && sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
           <div className="swarm-controls">
             {playback && (
               <div className="swarm-controls-collapsed-bar">
@@ -744,7 +777,7 @@ export function SwarmLab() {
             {loading && simPhase ? (
               <ProgressIndicator phase={simPhase.phase} percent={simPhase.percent} />
             ) : playback ? (
-              <Player playback={playback} overlays={overlays ?? undefined} onClose={() => { setPlayback(null); setOverlays(null); setSidebarCollapsed(false); }} autoPlay embedded loop />
+              <Player playback={playback} overlays={overlays ?? undefined} onClose={() => { setPlayback(null); setOverlays(null); setShowReport(false); setSidebarCollapsed(false); }} autoPlay embedded loop />
             ) : (
               <div className="swarm-placeholder">
                 <FlaskConical size={48} />
@@ -753,7 +786,7 @@ export function SwarmLab() {
             )}
           </div>
 
-          {playback && (
+          {showReport && playback && (
             <ReportTabs
               playback={playback}
               overlays={overlays ?? undefined}
