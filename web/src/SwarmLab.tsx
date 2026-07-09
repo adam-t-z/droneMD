@@ -1,11 +1,11 @@
-import { Atom, BookOpen, ChevronDown, ChevronRight, Download, FlaskConical, Loader2, Maximize2, Minimize2, Play, RotateCcw } from "lucide-react";
+import { Atom, BookOpen, ChevronDown, ChevronLeft, ChevronRight, FlaskConical, Loader2, Maximize2, Minimize2, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchDefaultObjPoints, loadDefaultPlayback, simulateSwarmStream, uploadObjFile } from "./api";
 import { downloadCSV, downloadJSONWaypoints, downloadROS, downloadReportPdf, downloadReportTxt } from "./export";
 import { DEMO_PRESETS, isOnboardingDone, markOnboardingDone, Onboarding } from "./Onboarding";
 import type { DemoPreset } from "./Onboarding";
 import { Player } from "./Player";
-import { ReportPanel } from "./ReportPanel";
+import { ReportTabs } from "./ReportTabs";
 import type { Playback, PlaybackOverlays, SimPhase, SwarmConfig } from "./types";
 
 const DEFAULT_CONFIG: SwarmConfig = {
@@ -234,7 +234,8 @@ export function SwarmLab() {
   const [showEnvironment, setShowEnvironment] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
   const [formationType, setFormationType] = useState<"none" | "human" | "upload">("none");
   const [objUploading, setObjUploading] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingDone());
@@ -316,8 +317,7 @@ export function SwarmLab() {
       const { overlays: ov, ...rest } = result;
       setPlayback(rest);
       setOverlays(ov ?? null);
-      setToast("Report ready, scroll down to see");
-      setTimeout(() => setToast(null), 5000);
+      setSidebarCollapsed(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Simulation failed");
     } finally {
@@ -334,9 +334,8 @@ export function SwarmLab() {
     setSimPhase(null);
     setFormationType("none");
     setActivePresetId(null);
+    setSidebarCollapsed(false);
   }, []);
-
-  const [activePresetId, setActivePresetId] = useState<string | null>(null);
 
   const loadPreset = useCallback((preset: DemoPreset) => {
     const merged = { ...DEFAULT_CONFIG, ...preset.config };
@@ -346,6 +345,7 @@ export function SwarmLab() {
     setPlayback(null);
     setOverlays(null);
     setSimPhase(null);
+    setSidebarCollapsed(false);
     if (preset.config.motion_primitive) {
       setFormationType("none");
     }
@@ -376,6 +376,7 @@ export function SwarmLab() {
         const { overlays: ov, ...rest } = data;
         setPlayback(rest);
         setOverlays(ov ?? null);
+        setSidebarCollapsed(true);
       }
     });
   }, []);
@@ -398,7 +399,6 @@ export function SwarmLab() {
         />
       )}
       <section className="workspace">
-        {toast && <div className="report-toast">{toast}</div>}
         <header className="topbar">
           <div>
             <h1>DroneMD</h1>
@@ -413,15 +413,39 @@ export function SwarmLab() {
             </div>
           </div>
           <div className="topbar-actions">
+            <button
+              className="primary-action"
+              disabled={loading}
+              onClick={() => void startSimulation()}
+            >
+              {loading ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
+              {loading ? "Simulating..." : "Start Simulation"}
+            </button>
             <button className="secondary-action compact" onClick={reset}>
               <RotateCcw size={18} />
               Reset
             </button>
+            {error && <p className="swarm-error">{error}</p>}
           </div>
         </header>
 
-        <div className="swarm-layout">
+        <div className={`swarm-layout${playback ? " has-results" : ""}${playback && sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
           <div className="swarm-controls">
+            {playback && (
+              <div className="swarm-controls-collapsed-bar">
+                <button
+                  className="swarm-controls-expand-btn"
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  title={sidebarCollapsed ? "Expand controls" : "Collapse controls"}
+                >
+                  {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                </button>
+                <span className="swarm-controls-collapsed-label">Params</span>
+                <button className="secondary-action compact" onClick={reset} title="Reset">
+                  <RotateCcw size={16} />
+                </button>
+              </div>
+            )}
             <div className="preset-strip">
               {DEMO_PRESETS.map((preset) => (
                 <button
@@ -707,59 +731,20 @@ export function SwarmLab() {
               )}
             </div>
 
-            <div className="swarm-start">
-              <button
-                className="primary-action"
-                disabled={loading}
-                onClick={() => void startSimulation()}
-              >
-                {loading ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
-                {loading ? "Simulating..." : "Start Simulation"}
-              </button>
-              {error && <p className="swarm-error">{error}</p>}
-            </div>
-
-            {playback && (
-              <div className="swarm-section">
-                <div className="section-title">
-                  <Download size={18} />
-                  <h2>Export</h2>
-                </div>
-                <div className="swarm-export-actions">
-                  <button className="secondary-action compact" onClick={() => downloadCSV(playback, config)}>
-                    CSV
-                  </button>
-                  <button className="secondary-action compact" onClick={() => downloadJSONWaypoints(playback, config)}>
-                    JSON
-                  </button>
-                  <button className="secondary-action compact" onClick={() => downloadROS(playback, config)}>
-                    ROS
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="swarm-preview" ref={previewRef}>
             <div className="swarm-preview-toolbar">
               <span className="eyebrow">Visual</span>
-              <div style={{ display: "flex", gap: 8 }}>
-                {playback && (
-                  <button className="secondary-action compact" onClick={() => downloadCSV(playback, config)}>
-                    <Download size={14} />
-                    Export
-                  </button>
-                )}
-                <button className="secondary-action compact" onClick={() => void togglePreviewFullscreen()}>
-                  {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                  {isFullscreen ? "Exit" : "Full screen"}
-                </button>
-              </div>
+              <button className="secondary-action compact" onClick={() => void togglePreviewFullscreen()}>
+                {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                {isFullscreen ? "Exit" : "Full screen"}
+              </button>
             </div>
             {loading && simPhase ? (
               <ProgressIndicator phase={simPhase.phase} percent={simPhase.percent} />
             ) : playback ? (
-              <Player playback={playback} overlays={overlays ?? undefined} onClose={() => { setPlayback(null); setOverlays(null); }} autoPlay embedded loop />
+              <Player playback={playback} overlays={overlays ?? undefined} onClose={() => { setPlayback(null); setOverlays(null); setSidebarCollapsed(false); }} autoPlay embedded loop />
             ) : (
               <div className="swarm-placeholder">
                 <FlaskConical size={48} />
@@ -767,19 +752,19 @@ export function SwarmLab() {
               </div>
             )}
           </div>
-        </div>
 
-        {playback && (
-          <ReportPanel
-            playback={playback}
-            overlays={overlays ?? undefined}
-            onExportCSV={() => downloadCSV(playback, config)}
-            onExportJSON={() => downloadJSONWaypoints(playback, config)}
-            onExportROS={() => downloadROS(playback, config)}
-            onExportTXT={() => downloadReportTxt(playback, config, overlays ?? undefined)}
-            onExportPDF={() => downloadReportPdf(playback, config, overlays ?? undefined)}
-          />
-        )}
+          {playback && (
+            <ReportTabs
+              playback={playback}
+              overlays={overlays ?? undefined}
+              onExportCSV={() => downloadCSV(playback, config)}
+              onExportJSON={() => downloadJSONWaypoints(playback, config)}
+              onExportROS={() => downloadROS(playback, config)}
+              onExportTXT={() => downloadReportTxt(playback, config, overlays ?? undefined)}
+              onExportPDF={() => downloadReportPdf(playback, config, overlays ?? undefined)}
+            />
+          )}
+        </div>
 
 
       </section>

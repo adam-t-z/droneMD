@@ -684,10 +684,66 @@ button:disabled {
   margin-top: 20px;
 }
 
+.swarm-layout.has-results {
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(260px, 340px);
+}
+
+.swarm-layout.has-results.sidebar-collapsed {
+  grid-template-columns: 52px minmax(0, 1fr) minmax(260px, 340px);
+}
+
 .swarm-controls {
   display: grid;
   gap: 14px;
   align-content: start;
+}
+
+.swarm-controls-collapsed-bar {
+  display: none;
+}
+
+.swarm-layout.sidebar-collapsed .swarm-controls .swarm-controls-collapsed-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+}
+
+.swarm-controls-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  color: #64748b;
+  transition: background 150ms, border-color 150ms;
+}
+
+.swarm-controls-expand-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.swarm-controls-collapsed-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  user-select: none;
+}
+
+.swarm-layout.sidebar-collapsed .swarm-controls .preset-strip,
+.swarm-layout.sidebar-collapsed .swarm-controls .swarm-section,
+.swarm-layout.sidebar-collapsed .swarm-controls .swarm-start {
+  display: none;
 }
 
 .swarm-section {
@@ -1720,4 +1776,176 @@ button:disabled {
 .preset-chip.recommended:hover {
   background: #1d4ed8;
   border-color: #1d4ed8;
+}
+
+/* ── Report Tabs (side panel) ─────────────────────────── */
+
+.report-tabs {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  height: 72vh;
+  min-height: 720px;
+}
+
+.report-tab-nav {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.report-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  border-bottom: 2px solid transparent;
+  transition: color 150ms, border-color 150ms;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.report-tab-btn:hover {
+  color: #475569;
+}
+
+.report-tab-btn.active {
+  color: #0f172a;
+  border-bottom-color: #2563eb;
+}
+
+.report-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.report-tab-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.report-tab-content::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 4px;
+}
+
+.report-tab-metrics {
+  display: grid;
+  gap: 8px;
+}
+
+.report-tab-metrics .report-card {
+  padding: 10px 12px;
+}
+
+.report-tab-metrics .report-card-value {
+  font-size: 1.05rem;
+}
+
+.report-tab-charts {
+  display: grid;
+  gap: 10px;
+}
+
+.report-tab-content .report-section-heading {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 2px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.report-tab-export {
+  display: grid;
+  gap: 12px;
+}
+
+.report-tab-export-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.report-export-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+  font: inherit;
+  color: #0f172a;
+  text-align: left;
+  transition: background 150ms, border-color 150ms;
+}
+
+.report-export-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.report-export-btn span {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.report-export-btn small {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+/* compact chart cards in tab panel */
+.report-chart-section.compact {
+  padding: 8px;
+}
+
+.report-chart-section.compact .report-chart-title {
+  font-size: 0.68rem;
+}
+
+/* benchmarks in tabs */
+.report-tab-benchmarks .bench-empty {
+  padding: 24px 16px;
+}
+
+/* 3-col responsive */
+@media (max-width: 1200px) {
+  .swarm-layout.has-results {
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(240px, 280px);
+  }
+
+  .swarm-layout.has-results.sidebar-collapsed {
+    grid-template-columns: 48px minmax(0, 1fr) minmax(240px, 280px);
+  }
+}
+
+@media (max-width: 980px) {
+  .swarm-layout.has-results,
+  .swarm-layout.has-results.sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .report-tabs {
+    height: auto;
+    min-height: auto;
+    max-height: 600px;
+  }
 }
