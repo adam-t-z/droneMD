@@ -119,7 +119,7 @@ function loadGeometry(file: string): Promise<THREE.BufferGeometry> {
     geometryCache.set(
       file,
       new Promise((resolve, reject) => {
-        loader.load(`/api/assets/drone/${file}`, (geometry) => {
+        loader.load(`/assets/drone/${file}`, (geometry) => {
           geometry.computeVertexNormals();
           resolve(geometry);
         }, undefined, reject);

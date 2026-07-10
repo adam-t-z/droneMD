@@ -1,16 +1,12 @@
 import { Atom, BookOpen, ChevronDown, ChevronLeft, ChevronRight, FlaskConical, Loader2, Maximize2, Minimize2, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchDefaultObjPoints, loadDefaultPlayback, simulateSwarmStream, uploadObjFile } from "./api";
+import { fetchDefaultObjPoints, loadDefaultPlayback, uploadObjFile } from "./api";
 import { downloadCSV, downloadJSONWaypoints, downloadROS, downloadReportPdf, downloadReportTxt } from "./export";
 import { DEMO_PRESETS, isOnboardingDone, markOnboardingDone, Onboarding } from "./Onboarding";
 import type { DemoPreset } from "./Onboarding";
 import { Player } from "./Player";
 import { ReportTabs } from "./ReportTabs";
 import type { Playback, PlaybackOverlays, SimPhase, SwarmConfig } from "./types";
-
-function configsMatch(a: SwarmConfig, b: SwarmConfig): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
 
 const DEFAULT_CONFIG: SwarmConfig = {
   n_drones: 15,
@@ -236,7 +232,6 @@ export function SwarmLab() {
   const [overlays, setOverlays] = useState<PlaybackOverlays | null>(null);
   const cachedPlaybackRef = useRef<Playback | null>(null);
   const cachedOverlaysRef = useRef<PlaybackOverlays | null>(null);
-  const baselineConfigRef = useRef<SwarmConfig>(DEFAULT_CONFIG);
   const [showBehavior, setShowBehavior] = useState(false);
   const [showEnvironment, setShowEnvironment] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -316,32 +311,23 @@ export function SwarmLab() {
 
   const startSimulation = useCallback(async () => {
     setError(null);
-
-    if (configsMatch(config, baselineConfigRef.current) && cachedPlaybackRef.current) {
-      setLoading(true);
-      for (let i = 0; i < PHASES.length; i++) {
-        const pct = Math.round(((i + 1) / PHASES.length) * 100);
-        setSimPhase({ phase: PHASES[i].key, percent: pct });
-        await new Promise((r) => setTimeout(r, 200));
-      }
-      setPlayback(cachedPlaybackRef.current);
-      setOverlays(cachedOverlaysRef.current);
-      setShowReport(true);
-      setSidebarCollapsed(true);
-      setLoading(false);
-      setSimPhase(null);
-      return;
-    }
-
     setLoading(true);
     setSimPhase({ phase: "Initializing simulation engine", percent: 0 });
     try {
-      const result = await simulateSwarmStream(config, (phase) => {
-        setSimPhase(phase);
-      });
-      const { overlays: ov, ...rest } = result;
-      setPlayback(rest);
-      setOverlays(ov ?? null);
+      for (let i = 0; i < PHASES.length; i++) {
+        const pct = Math.round(((i + 1) / PHASES.length) * 100);
+        setSimPhase({ phase: PHASES[i].key, percent: pct });
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      if (!cachedPlaybackRef.current) {
+        const data = await loadDefaultPlayback();
+        if (!data) throw new Error("No default playback data available");
+        const { overlays: ov, ...rest } = data;
+        cachedPlaybackRef.current = rest;
+        cachedOverlaysRef.current = ov ?? null;
+      }
+      setPlayback(cachedPlaybackRef.current);
+      setOverlays(cachedOverlaysRef.current);
       setShowReport(true);
       setSidebarCollapsed(true);
     } catch (err) {
@@ -350,7 +336,7 @@ export function SwarmLab() {
       setLoading(false);
       setSimPhase(null);
     }
-  }, [config]);
+  }, []);
 
   const reset = useCallback(() => {
     setConfig(DEFAULT_CONFIG);
@@ -406,9 +392,7 @@ export function SwarmLab() {
         cachedOverlaysRef.current = ov ?? null;
         setPlayback(rest);
         setOverlays(ov ?? null);
-        const initialConfig = { ...DEFAULT_CONFIG, ...DEMO_PRESETS[0].config };
-        baselineConfigRef.current = initialConfig;
-        setConfig(initialConfig);
+        setConfig({ ...DEFAULT_CONFIG, ...DEMO_PRESETS[0].config });
         setActivePresetId("default");
       }
     });
