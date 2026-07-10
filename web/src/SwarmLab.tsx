@@ -432,7 +432,7 @@ export function SwarmLab() {
           <div>
             <h1>DroneMD</h1>
             <p className="swarm-header-description">
-              This is a drone swarm simulation system running on AMD GPU hardware, with live controls for swarm behavior, with actual physics engine.
+              This is a drone swarm simulation system running on AMD Instinct MI300X GPU, with live controls for swarm behavior and an actual physics engine.
             </p>
             <div className="swarm-status-row">
               <span className={statusClass}>{statusLabel}</span>
