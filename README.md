@@ -4,6 +4,8 @@ GPU-accelerated drone swarm simulation platform with physics-accurate Boids floc
 
 Built for the **AMD Developer Hackathon: Stage II** (lablab.ai).
 
+Demo link: [here](https://dronemd.netlify.app/)
+
 Simulating a 3D cone with 25 drones:
 <p align="center">
   <img src="assets/drone-sim-trial2.gif" alt="DroneMD swarm simulation" width="800">
