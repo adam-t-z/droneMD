@@ -1,6 +1,6 @@
 import { Atom, BookOpen, ChevronDown, ChevronLeft, ChevronRight, FlaskConical, Loader2, Maximize2, Minimize2, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchDefaultObjPoints, loadDefaultPlayback, uploadObjFile } from "./api";
+import { fetchDefaultObjPoints, loadDefaultPlayback, loadHumanBodyPlayback, uploadObjFile } from "./api";
 import { downloadCSV, downloadJSONWaypoints, downloadROS, downloadReportPdf, downloadReportTxt } from "./export";
 import { DEMO_PRESETS, isOnboardingDone, markOnboardingDone, Onboarding } from "./Onboarding";
 import type { DemoPreset } from "./Onboarding";
@@ -232,6 +232,7 @@ export function SwarmLab() {
   const [overlays, setOverlays] = useState<PlaybackOverlays | null>(null);
   const cachedPlaybackRef = useRef<Playback | null>(null);
   const cachedOverlaysRef = useRef<PlaybackOverlays | null>(null);
+  const humanBodyCacheRef = useRef<{ playback: Playback; overlays: PlaybackOverlays | null } | null>(null);
   const [showBehavior, setShowBehavior] = useState(false);
   const [showEnvironment, setShowEnvironment] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -319,15 +320,20 @@ export function SwarmLab() {
         setSimPhase({ phase: PHASES[i].key, percent: pct });
         await new Promise((r) => setTimeout(r, 500));
       }
-      if (!cachedPlaybackRef.current) {
-        const data = await loadDefaultPlayback();
-        if (!data) throw new Error("No default playback data available");
-        const { overlays: ov, ...rest } = data;
-        cachedPlaybackRef.current = rest;
-        cachedOverlaysRef.current = ov ?? null;
+      if (config.obj_points && humanBodyCacheRef.current) {
+        setPlayback(humanBodyCacheRef.current.playback);
+        setOverlays(humanBodyCacheRef.current.overlays);
+      } else {
+        if (!cachedPlaybackRef.current) {
+          const data = await loadDefaultPlayback();
+          if (!data) throw new Error("No default playback data available");
+          const { overlays: ov, ...rest } = data;
+          cachedPlaybackRef.current = rest;
+          cachedOverlaysRef.current = ov ?? null;
+        }
+        setPlayback(cachedPlaybackRef.current);
+        setOverlays(cachedOverlaysRef.current);
       }
-      setPlayback(cachedPlaybackRef.current);
-      setOverlays(cachedOverlaysRef.current);
       setShowReport(true);
       setSidebarCollapsed(true);
     } catch (err) {
@@ -336,7 +342,7 @@ export function SwarmLab() {
       setLoading(false);
       setSimPhase(null);
     }
-  }, []);
+  }, [config.obj_points]);
 
   const reset = useCallback(() => {
     setConfig(DEFAULT_CONFIG);
@@ -394,6 +400,12 @@ export function SwarmLab() {
         setOverlays(ov ?? null);
         setConfig({ ...DEFAULT_CONFIG, ...DEMO_PRESETS[0].config });
         setActivePresetId("default");
+      }
+    });
+    void loadHumanBodyPlayback().then((data) => {
+      if (data) {
+        const { overlays: ov, ...rest } = data;
+        humanBodyCacheRef.current = { playback: rest, overlays: ov ?? null };
       }
     });
   }, []);

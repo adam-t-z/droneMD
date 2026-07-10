@@ -113,6 +113,16 @@ export async function uploadObjFile(
   return await resp.json() as { points: number[][]; n_drones: number };
 }
 
+export async function loadHumanBodyPlayback(): Promise<Playback | null> {
+  try {
+    const resp = await fetch("/data/human-body-playback.json");
+    if (!resp.ok) return null;
+    return (await resp.json()) as Playback;
+  } catch {
+    return null;
+  }
+}
+
 export function fetchGpuBenchmark(): Promise<BenchmarkHistory> {
   return request<BenchmarkHistory>("/api/swarm/benchmark");
 }
