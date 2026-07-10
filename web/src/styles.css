@@ -66,6 +66,18 @@ button {
   padding: 16px;
 }
 
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-logo {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;

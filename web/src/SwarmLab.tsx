@@ -428,9 +428,12 @@ export function SwarmLab() {
         />
       )}
       <section className="workspace">
-        <header className="topbar">
+         <header className="topbar">
           <div>
-            <h1>DroneMD</h1>
+            <span className="topbar-brand">
+              <img src="/favicon-32x32.png" alt="DroneMD" className="topbar-logo" />
+              <h1>DroneMD</h1>
+            </span>
             <p className="swarm-header-description">
               This is a drone swarm simulation system running on AMD Instinct MI300X GPU, with live controls for swarm behavior and an actual physics engine.
             </p>
