@@ -1,0 +1,57 @@
+[
+  {
+    "worlds": 1,
+    "drones_per_world": 100,
+    "total_drones": 100,
+    "physics_steps": 5000,
+    "wall_seconds": 5.674241151999922,
+    "steps_per_second": 881.1750974379576,
+    "drone_steps_per_second": 88117.50974379576,
+    "real_time_factor": 1.762350194875915,
+    "device": "rocm:0"
+  },
+  {
+    "worlds": 10,
+    "drones_per_world": 100,
+    "total_drones": 1000,
+    "physics_steps": 5000,
+    "wall_seconds": 37.64150609999979,
+    "steps_per_second": 132.83209196563016,
+    "drone_steps_per_second": 132832.09196563016,
+    "real_time_factor": 0.2656641839312603,
+    "device": "rocm:0"
+  },
+  {
+    "worlds": 50,
+    "drones_per_world": 100,
+    "total_drones": 5000,
+    "physics_steps": 5000,
+    "wall_seconds": 88.19977752900013,
+    "steps_per_second": 56.68948539417798,
+    "drone_steps_per_second": 283447.4269708899,
+    "real_time_factor": 0.11337897078835596,
+    "device": "rocm:0"
+  },
+  {
+    "worlds": 100,
+    "drones_per_world": 100,
+    "total_drones": 10000,
+    "physics_steps": 5000,
+    "wall_seconds": 134.7289646070003,
+    "steps_per_second": 37.11154475642877,
+    "drone_steps_per_second": 371115.44756428775,
+    "real_time_factor": 0.07422308951285754,
+    "device": "rocm:0"
+  },
+  {
+    "worlds": 100,
+    "drones_per_world": 500,
+    "total_drones": 50000,
+    "physics_steps": 5000,
+    "wall_seconds": 422.248914494,
+    "steps_per_second": 11.841356669896301,
+    "drone_steps_per_second": 592067.833494815,
+    "real_time_factor": 0.0236827133397926,
+    "device": "rocm:0"
+  }
+]

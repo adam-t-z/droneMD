@@ -1,0 +1,58 @@
+{
+  "platform": "rocm",
+  "device_name": "AMD Radeon RX 7600S",
+  "device_count": 1,
+  "sweep_total_seconds": 40.4,
+  "measurements": [
+    {
+      "num_drones": 10,
+      "duration_seconds": 10.0,
+      "wall_time_seconds": 5.796489362001012,
+      "timesteps_per_second": 312.03,
+      "platform": "rocm",
+      "device_name": "AMD Radeon RX 7600S",
+      "device_count": 1,
+      "memory_mb": 1867
+    },
+    {
+      "num_drones": 25,
+      "duration_seconds": 10.0,
+      "wall_time_seconds": 5.8816389799994795,
+      "timesteps_per_second": 289.12,
+      "platform": "rocm",
+      "device_name": "AMD Radeon RX 7600S",
+      "device_count": 1,
+      "memory_mb": 3046
+    },
+    {
+      "num_drones": 50,
+      "duration_seconds": 10.0,
+      "wall_time_seconds": 6.883827483001369,
+      "timesteps_per_second": 265.67,
+      "platform": "rocm",
+      "device_name": "AMD Radeon RX 7600S",
+      "device_count": 1,
+      "memory_mb": 5068
+    },
+    {
+      "num_drones": 100,
+      "duration_seconds": 10.0,
+      "wall_time_seconds": 8.332899051001732,
+      "timesteps_per_second": 244.21,
+      "platform": "rocm",
+      "device_name": "AMD Radeon RX 7600S",
+      "device_count": 1,
+      "memory_mb": 7897
+    },
+    {
+      "num_drones": 200,
+      "duration_seconds": 10.0,
+      "wall_time_seconds": 13.542220752000503,
+      "timesteps_per_second": 212.0,
+      "platform": "rocm",
+      "device_name": "AMD Radeon RX 7600S",
+      "device_count": 1,
+      "memory_mb": 13449
+    }
+  ]
+}

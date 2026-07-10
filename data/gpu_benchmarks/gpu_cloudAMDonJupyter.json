@@ -1,0 +1,58 @@
+{
+  "platform": "cuda",
+  "device_name": "AMD Instinct MI300X VF ",
+  "device_count": 1,
+  "sweep_total_seconds": 66.7,
+  "measurements": [
+    {
+      "num_drones": 10,
+      "duration_seconds": 10.0,
+      "wall_time_seconds": 10.936026096999967,
+      "timesteps_per_second": 167.65,
+      "platform": "cuda",
+      "device_name": "AMD Instinct MI300X VF ",
+      "device_count": 1,
+      "memory_mb": 8394
+    },
+    {
+      "num_drones": 25,
+      "duration_seconds": 10.0,
+      "wall_time_seconds": 12.528211209999881,
+      "timesteps_per_second": 164.62,
+      "platform": "cuda",
+      "device_name": "AMD Instinct MI300X VF ",
+      "device_count": 1,
+      "memory_mb": 10445
+    },
+    {
+      "num_drones": 50,
+      "duration_seconds": 10.0,
+      "wall_time_seconds": 13.629708404999974,
+      "timesteps_per_second": 158.89,
+      "platform": "cuda",
+      "device_name": "AMD Instinct MI300X VF ",
+      "device_count": 1,
+      "memory_mb": 12579
+    },
+    {
+      "num_drones": 100,
+      "duration_seconds": 10.0,
+      "wall_time_seconds": 12.201024262999908,
+      "timesteps_per_second": 154.16,
+      "platform": "cuda",
+      "device_name": "AMD Instinct MI300X VF ",
+      "device_count": 1,
+      "memory_mb": 14995
+    },
+    {
+      "num_drones": 200,
+      "duration_seconds": 10.0,
+      "wall_time_seconds": 17.438767231000156,
+      "timesteps_per_second": 150.75,
+      "platform": "cuda",
+      "device_name": "AMD Instinct MI300X VF ",
+      "device_count": 1,
+      "memory_mb": 20100
+    }
+  ]
+}

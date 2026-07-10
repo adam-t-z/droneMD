@@ -1,0 +1,16 @@
+{
+  "jax_version": "0.10.2",
+  "devices": [
+    "rocm:0"
+  ],
+  "matmul": {
+    "size": 8192,
+    "seconds": 0.0018145070002901775,
+    "TFLOPS": 605.9561233988985
+  },
+  "memory": {
+    "seconds": 0.0004990820002603868,
+    "GB_per_second": 3205.886005035705
+  },
+  "memory_info": "{\"card0\": {\"VRAM Total Memory (B)\": \"205822885888\", \"VRAM Total Used Memory (B)\": \"158705520640\"}}\n"
+}
