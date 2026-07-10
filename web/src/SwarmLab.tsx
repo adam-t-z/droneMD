@@ -442,6 +442,7 @@ export function SwarmLab() {
             </div>
           </div>
           <div className="topbar-actions">
+            <span className="meta-chip demo-chip">Demo — Cached Results</span>
             <button
               className="primary-action"
               disabled={loading}

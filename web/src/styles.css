@@ -558,6 +558,13 @@ button:disabled {
   line-height: 1.5;
 }
 
+.demo-chip {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+  font-weight: 600;
+}
+
 .meta-chip {
   display: inline-flex;
   align-items: center;
