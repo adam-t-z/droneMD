@@ -1,6 +1,6 @@
 import { Atom, BookOpen, ChevronDown, ChevronLeft, ChevronRight, FlaskConical, Loader2, Maximize2, Minimize2, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchDefaultObjPoints, loadDefaultPlayback, loadHumanBodyPlayback, loadStarPlayback, uploadObjFile } from "./api";
+import { fetchDefaultObjPoints, loadDefaultPlayback, loadHumanBodyPlayback, loadStarPlayback, simulateSwarm, uploadObjFile } from "./api";
 import { downloadCSV, downloadJSONWaypoints, downloadROS, downloadReportPdf, downloadReportTxt } from "./export";
 import { DEMO_PRESETS, isOnboardingDone, markOnboardingDone, Onboarding } from "./Onboarding";
 import type { DemoPreset } from "./Onboarding";
@@ -317,34 +317,40 @@ export function SwarmLab() {
     setLoading(true);
     setSimPhase({ phase: "Initializing simulation engine", percent: 0 });
     try {
-      for (let i = 0; i < PHASES.length; i++) {
-        const pct = Math.round(((i + 1) / PHASES.length) * 100);
-        setSimPhase({ phase: PHASES[i].key, percent: pct });
-        await new Promise((r) => setTimeout(r, 500));
-      }
-      if (config.obj_points && humanBodyCacheRef.current) {
-        setPlayback(humanBodyCacheRef.current.playback);
-        setOverlays(humanBodyCacheRef.current.overlays);
-      } else if (activePlaybackCacheRef.current === "star") {
-        if (!starPlaybackCacheRef.current) {
-          const data = await loadStarPlayback();
-          if (!data) throw new Error("No star playback data available");
-          const { overlays: ov, ...rest } = data;
-          starPlaybackCacheRef.current = { playback: rest, overlays: ov ?? null };
+      let playback: Playback;
+      try {
+        for (let i = 0; i < PHASES.length; i++) {
+          const pct = Math.round(((i + 1) / PHASES.length) * 100);
+          setSimPhase({ phase: PHASES[i].key, percent: pct });
+          await new Promise((r) => setTimeout(r, 500));
         }
-        setPlayback(starPlaybackCacheRef.current.playback);
-        setOverlays(starPlaybackCacheRef.current.overlays);
-      } else {
-        if (!cachedPlaybackRef.current) {
-          const data = await loadDefaultPlayback();
-          if (!data) throw new Error("No default playback data available");
-          const { overlays: ov, ...rest } = data;
-          cachedPlaybackRef.current = rest;
-          cachedOverlaysRef.current = ov ?? null;
+        playback = await simulateSwarm(config);
+      } catch {
+        if (config.obj_points && humanBodyCacheRef.current) {
+          playback = humanBodyCacheRef.current.playback;
+        } else if (activePlaybackCacheRef.current === "star") {
+          if (!starPlaybackCacheRef.current) {
+            const data = await loadStarPlayback();
+            if (!data) throw new Error("No star playback data available");
+            const { overlays: ov, ...rest } = data;
+            starPlaybackCacheRef.current = { playback: rest, overlays: ov ?? null };
+          }
+          playback = starPlaybackCacheRef.current.playback;
+        } else {
+          if (!cachedPlaybackRef.current) {
+            const data = await loadDefaultPlayback();
+            if (!data) throw new Error("No default playback data available");
+            const { overlays: ov, ...rest } = data;
+            cachedPlaybackRef.current = rest;
+            cachedOverlaysRef.current = ov ?? null;
+          }
+          playback = cachedPlaybackRef.current;
         }
-        setPlayback(cachedPlaybackRef.current);
-        setOverlays(cachedOverlaysRef.current);
       }
+      setPlayback(playback);
+      const ov = playback.overlays ?? null;
+      setOverlays(ov);
+      if (ov) playback.overlays = undefined;
       setShowReport(true);
       setSidebarCollapsed(true);
     } catch (err) {
@@ -353,7 +359,7 @@ export function SwarmLab() {
       setLoading(false);
       setSimPhase(null);
     }
-  }, [config.obj_points]);
+  }, [config]);
 
   const reset = useCallback(() => {
     setConfig(DEFAULT_CONFIG);
