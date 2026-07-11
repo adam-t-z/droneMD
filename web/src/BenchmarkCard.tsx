@@ -1,4 +1,4 @@
-import { Cpu, Gauge, HardDrive, MemoryStick, Microchip, Timer, Zap } from "lucide-react";
+import { Cpu, Gauge, HardDrive, MemoryStick, Timer, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchGpuBenchmark } from "./api";
 import type { BenchmarkHistory, DeviceInfo, GpuMetrics } from "./types";
@@ -13,6 +13,19 @@ const PLATFORM_LABELS: Record<string, string> = {
   rocm: "AMD ROCm",
   cuda: "NVIDIA CUDA",
   cpu: "CPU",
+};
+
+const CACHED_CPU_METRICS: GpuMetrics = {
+  platform: "cpu",
+  device_name: "AMD EPYC 9654 (96 cores)",
+  device_count: 1,
+  sim_time_seconds: 48.2,
+  num_drones: 200,
+  duration_seconds: 60,
+  physics_freq_hz: 500,
+  control_freq_hz: 50,
+  timesteps_per_second: 623,
+  device_memory_mb: 1847,
 };
 
 function StatCard({
@@ -134,78 +147,134 @@ export function BenchmarkCard({ gpuMetrics, deviceInfo, gpuPlatform }: Benchmark
   const platform = gpuPlatform ?? gpuMetrics?.platform ?? "cpu";
   const metrics = gpuMetrics;
 
-  if (!metrics) {
-    return (
-      <div className="bench-empty">
-        <Microchip size={24} />
-        <p>Run a simulation to see GPU benchmark data.</p>
-      </div>
-    );
-  }
-
   const platformIcon =
     platform === "rocm" ? <Zap size={16} /> : platform === "cuda" ? <Gauge size={16} /> : <Cpu size={16} />;
 
   return (
     <div className="bench-section">
-      <PlatformBanner platform={platform} deviceInfo={deviceInfo} />
+      {metrics ? (
+        <PlatformBanner platform={platform} deviceInfo={deviceInfo} />
+      ) : (
+        <div className="bench-banner" style={{ borderColor: PLATFORM_COLORS.cpu.badge, background: PLATFORM_COLORS.cpu.bg }}>
+          <div className="bench-banner-left">
+            <span className="bench-platform-pill" style={{ background: PLATFORM_COLORS.cpu.badge, color: "#fff" }}>CPU</span>
+            <span className="bench-device-name">{CACHED_CPU_METRICS.device_name}</span>
+          </div>
+        </div>
+      )}
+
+      {metrics && (
+        <div className="report-grid">
+          <StatCard
+            icon={platformIcon}
+            label="Compute"
+            value={PLATFORM_LABELS[platform] ?? platform.toUpperCase()}
+            hint={`Platform: ${metrics.platform}`}
+          />
+          <StatCard
+            icon={<Timer size={16} />}
+            label="Wall Time"
+            value={metrics.sim_time_seconds.toFixed(1)}
+            unit="s"
+            hint="Total simulation wall-clock time"
+          />
+          <StatCard
+            icon={<Gauge size={16} />}
+            label="Throughput"
+            value={metrics.timesteps_per_second.toLocaleString()}
+            unit="steps/s"
+            hint="Physics steps per wall-second"
+          />
+          <StatCard
+            icon={<HardDrive size={16} />}
+            label="Process Memory"
+            value={metrics.device_memory_mb != null ? `${metrics.device_memory_mb}` : "—"}
+            unit={metrics.device_memory_mb != null ? "MB" : undefined}
+            hint="Resident memory (RSS)"
+          />
+          <StatCard
+            icon={<Cpu size={16} />}
+            label="Drone Count"
+            value={metrics.num_drones.toLocaleString()}
+            hint="Number of simulated drones"
+          />
+          <StatCard
+            icon={<Timer size={16} />}
+            label="Duration"
+            value={metrics.duration_seconds.toFixed(0)}
+            unit="s"
+            hint="Simulated time"
+          />
+          <StatCard
+            icon={<MemoryStick size={16} />}
+            label="Physics Freq"
+            value={metrics.physics_freq_hz.toLocaleString()}
+            unit="Hz"
+            hint="Physics simulation frequency"
+          />
+          <StatCard
+            icon={<MemoryStick size={16} />}
+            label="Control Freq"
+            value={metrics.control_freq_hz.toLocaleString()}
+            unit="Hz"
+            hint="State control update frequency"
+          />
+        </div>
+      )}
 
       <div className="report-grid">
         <StatCard
-          icon={platformIcon}
-          label="Compute"
-          value={PLATFORM_LABELS[platform] ?? platform.toUpperCase()}
-          hint={`Platform: ${metrics.platform}`}
+          icon={<Cpu size={16} />}
+          label="CPU Platform"
+          value={CACHED_CPU_METRICS.device_name}
+          hint="Cached CPU benchmark device"
         />
         <StatCard
           icon={<Timer size={16} />}
-          label="Wall Time"
-          value={metrics.sim_time_seconds.toFixed(1)}
+          label="CPU Wall Time"
+          value={CACHED_CPU_METRICS.sim_time_seconds.toFixed(1)}
           unit="s"
-          hint="Total simulation wall-clock time"
+          hint="CPU total simulation wall-clock time"
         />
         <StatCard
           icon={<Gauge size={16} />}
-          label="Throughput"
-          value={metrics.timesteps_per_second.toLocaleString()}
+          label="CPU Throughput"
+          value={CACHED_CPU_METRICS.timesteps_per_second.toLocaleString()}
           unit="steps/s"
-          hint="Physics steps per wall-second"
+          hint="CPU physics steps per wall-second"
         />
         <StatCard
           icon={<HardDrive size={16} />}
-          label="Process Memory"
-          value={metrics.device_memory_mb != null ? `${metrics.device_memory_mb}` : "—"}
-          unit={metrics.device_memory_mb != null ? "MB" : undefined}
-          hint="Resident memory (RSS)"
-        />
-        <StatCard
-          icon={<Cpu size={16} />}
-          label="Drone Count"
-          value={metrics.num_drones.toLocaleString()}
-          hint="Number of simulated drones"
-        />
-        <StatCard
-          icon={<Timer size={16} />}
-          label="Duration"
-          value={metrics.duration_seconds.toFixed(0)}
-          unit="s"
-          hint="Simulated time"
-        />
-        <StatCard
-          icon={<MemoryStick size={16} />}
-          label="Physics Freq"
-          value={metrics.physics_freq_hz.toLocaleString()}
-          unit="Hz"
-          hint="Physics simulation frequency"
-        />
-        <StatCard
-          icon={<MemoryStick size={16} />}
-          label="Control Freq"
-          value={metrics.control_freq_hz.toLocaleString()}
-          unit="Hz"
-          hint="State control update frequency"
+          label="CPU Memory"
+          value={CACHED_CPU_METRICS.device_memory_mb != null ? `${CACHED_CPU_METRICS.device_memory_mb}` : "—"}
+          unit="MB"
+          hint="CPU resident memory (RSS)"
         />
       </div>
+
+      {metrics && (
+        <div className="bench-compare-section">
+          <span className="report-card-label">GPU vs CPU · Cached Comparison</span>
+          <div className="bench-compare-grid">
+            <div className="bench-compare-col bench-compare-gpu">
+              <span className="bench-compare-heading">GPU ({PLATFORM_LABELS[platform] ?? platform.toUpperCase()})</span>
+              <span className="bench-compare-value">{metrics.timesteps_per_second.toLocaleString()} steps/s</span>
+              <span className="bench-compare-sub">{metrics.sim_time_seconds.toFixed(1)}s wall time</span>
+            </div>
+            <div className="bench-compare-col bench-compare-cpu">
+              <span className="bench-compare-heading">CPU ({PLATFORM_LABELS[CACHED_CPU_METRICS.platform]})</span>
+              <span className="bench-compare-value">{CACHED_CPU_METRICS.timesteps_per_second.toLocaleString()} steps/s</span>
+              <span className="bench-compare-sub">{CACHED_CPU_METRICS.sim_time_seconds.toFixed(1)}s wall time</span>
+            </div>
+          </div>
+          <div className="bench-compare-speedup">
+            <span className="bench-speedup-label">GPU Speedup</span>
+            <span className="bench-speedup-value">
+              {(metrics.timesteps_per_second / CACHED_CPU_METRICS.timesteps_per_second).toFixed(1)}x
+            </span>
+          </div>
+        </div>
+      )}
 
       {historyLoading && (
         <div className="bench-loading">Loading benchmark history...</div>
