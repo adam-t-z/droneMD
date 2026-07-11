@@ -1,4 +1,4 @@
-import { ArrowRight, Atom, BarChart3, Pyramid, Rocket, Star, Triangle, Zap } from "lucide-react";
+import { ArrowRight, Atom, BarChart3, Pyramid, Rocket, Star, User, Zap } from "lucide-react";
 import { useState } from "react";
 import type { SwarmConfig } from "./types";
 
@@ -34,6 +34,8 @@ export type DemoPreset = {
   icon: React.ReactNode;
   config: Partial<SwarmConfig>;
   autoStart?: boolean;
+  playbackCache?: "human-body" | "star";
+  objShape?: "human";
 };
 
 const DEFAULT_PRESET: DemoPreset = {
@@ -111,10 +113,43 @@ const STAR_PRESET: DemoPreset = {
   },
 };
 
+const HUMAN_BODY_PRESET: DemoPreset = {
+  id: "human-body",
+  label: "Human Body",
+  description: "70 drones forming a human body shape — cached playback",
+  icon: <User size={16} />,
+  config: {
+    n_drones: 70,
+    duration: 10,
+    device: "cpu",
+  },
+  autoStart: true,
+  playbackCache: "human-body",
+  objShape: "human",
+};
+
+const STAR_CACHED_PRESET: DemoPreset = {
+  id: "star-cached",
+  label: "Rotating Star",
+  description: "12 drones star formation — light cached playback",
+  icon: <Star size={16} />,
+  config: {
+    n_drones: 12,
+    duration: 10,
+    motion_primitive: "star",
+    primitive_params: { radius: 1.0, delta_radius: 0.3, t_form: 2.0, omega: 0.2 },
+    freq: 250,
+    state_freq: 50,
+    device: "cpu",
+  },
+  autoStart: true,
+  playbackCache: "star",
+};
+
 export const DEMO_PRESETS: DemoPreset[] = [
-  DEFAULT_PRESET,
   CONE_PRESET,
-  STAR_PRESET,
+  HUMAN_BODY_PRESET,
+  STAR_CACHED_PRESET,
 ];
 
 export function isOnboardingDone(): boolean {

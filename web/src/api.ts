@@ -123,6 +123,16 @@ export async function loadHumanBodyPlayback(): Promise<Playback | null> {
   }
 }
 
+export async function loadStarPlayback(): Promise<Playback | null> {
+  try {
+    const resp = await fetch("/data/star-playback.json");
+    if (!resp.ok) return null;
+    return (await resp.json()) as Playback;
+  } catch {
+    return null;
+  }
+}
+
 export function fetchGpuBenchmark(): Promise<BenchmarkHistory> {
   return request<BenchmarkHistory>("/api/swarm/benchmark");
 }

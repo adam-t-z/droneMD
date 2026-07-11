@@ -1,6 +1,6 @@
 import { Atom, BookOpen, ChevronDown, ChevronLeft, ChevronRight, FlaskConical, Loader2, Maximize2, Minimize2, Play, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchDefaultObjPoints, loadDefaultPlayback, loadHumanBodyPlayback, uploadObjFile } from "./api";
+import { fetchDefaultObjPoints, loadDefaultPlayback, loadHumanBodyPlayback, loadStarPlayback, uploadObjFile } from "./api";
 import { downloadCSV, downloadJSONWaypoints, downloadROS, downloadReportPdf, downloadReportTxt } from "./export";
 import { DEMO_PRESETS, isOnboardingDone, markOnboardingDone, Onboarding } from "./Onboarding";
 import type { DemoPreset } from "./Onboarding";
@@ -233,6 +233,8 @@ export function SwarmLab() {
   const cachedPlaybackRef = useRef<Playback | null>(null);
   const cachedOverlaysRef = useRef<PlaybackOverlays | null>(null);
   const humanBodyCacheRef = useRef<{ playback: Playback; overlays: PlaybackOverlays | null } | null>(null);
+  const starPlaybackCacheRef = useRef<{ playback: Playback; overlays: PlaybackOverlays | null } | null>(null);
+  const activePlaybackCacheRef = useRef<string | null>(null);
   const [showBehavior, setShowBehavior] = useState(false);
   const [showEnvironment, setShowEnvironment] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -323,6 +325,15 @@ export function SwarmLab() {
       if (config.obj_points && humanBodyCacheRef.current) {
         setPlayback(humanBodyCacheRef.current.playback);
         setOverlays(humanBodyCacheRef.current.overlays);
+      } else if (activePlaybackCacheRef.current === "star") {
+        if (!starPlaybackCacheRef.current) {
+          const data = await loadStarPlayback();
+          if (!data) throw new Error("No star playback data available");
+          const { overlays: ov, ...rest } = data;
+          starPlaybackCacheRef.current = { playback: rest, overlays: ov ?? null };
+        }
+        setPlayback(starPlaybackCacheRef.current.playback);
+        setOverlays(starPlaybackCacheRef.current.overlays);
       } else {
         if (!cachedPlaybackRef.current) {
           const data = await loadDefaultPlayback();
@@ -356,8 +367,15 @@ export function SwarmLab() {
     setSidebarCollapsed(false);
   }, []);
 
-  const loadPreset = useCallback((preset: DemoPreset) => {
+  const loadPreset = useCallback(async (preset: DemoPreset) => {
     const merged = { ...DEFAULT_CONFIG, ...preset.config };
+    if (preset.objShape === "human") {
+      const data = await fetchDefaultObjPoints();
+      if (data) {
+        merged.n_drones = data.n;
+        merged.obj_points = data.points;
+      }
+    }
     setConfig(merged);
     setActivePresetId(preset.id);
     setError(null);
@@ -366,9 +384,8 @@ export function SwarmLab() {
     setSimPhase(null);
     setShowReport(false);
     setSidebarCollapsed(false);
-    if (preset.config.motion_primitive) {
-      setFormationType("none");
-    }
+    setFormationType(preset.objShape ?? "none");
+    activePlaybackCacheRef.current = preset.playbackCache ?? null;
   }, []);
 
   const togglePreviewFullscreen = useCallback(async () => {
@@ -399,7 +416,7 @@ export function SwarmLab() {
         setPlayback(rest);
         setOverlays(ov ?? null);
         setConfig({ ...DEFAULT_CONFIG, ...DEMO_PRESETS[0].config });
-        setActivePresetId("default");
+        setActivePresetId(DEMO_PRESETS[0].id);
       }
     });
     void loadHumanBodyPlayback().then((data) => {
